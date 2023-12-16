@@ -25,30 +25,38 @@ knitr::opts_chunk$set(
 )
 ```  
 
-In this tutorial, we illustrate how to use the **CTB** package in **R** to implement covariate-tightened trimming bounds method proposed by @samii2023generalizing. We start with a simulated dataset. 
+In this tutorial, we illustrate how to use the **CTB** package in **R** to implement covariate-tightened trimming bounds method proposed by @samii2023generalizing. 
 
 ##  Simulated data
-
-**fect**  ships two datasets. In this demo, we will primarily be using **simdata**, in which the treatment is allowed to switch on and off. There are 200 units and 35 time periods. We describe its DGP in the [paper](https://papers.ssrn.com/abstract=3555463). 
+In this demo, we will be using **simData** contained in the package. There are $1,000$ units and $10$ covariates in the data, but only one covariate affects both the outcome and the response rate. We describe its DGP in the [paper](https://papers.ssrn.com/abstract=3555463). 
 ```{r message = FALSE, warning = FALSE}
 set.seed(1234)
-library(fect)
-data(fect)
-ls()
+library(CTB)
+data(simData)
+
+N <- nrow(dat)
+
+X <- c(names(dat)[c(2:12)])
+X_avg <- apply(dat[, X[-2]], 2, mean)
+Xm_evals <- quantile(dat[, "X2"], seq(0.05, 0.95, 0.05))
+X_moderator <- matrix(rep(X_avg, length(Xm_evals)), length(X_avg), length(Xm_evals))
+X_moderator <- rbind(X_moderator, Xm_evals)
+X_moderator <- t(X_moderator)
+X_moderator <- cbind(X_moderator[, 1], X_moderator[, 11], X_moderator[, 2:10])
+
+result <- CTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, cBounds = 1, X_moderator = X_moderator, direction = NULL, cond.mono = TRUE)
+
+tau_l_m_avg <- result[["tau_l_m_avg"]]
+tau_u_m_avg <- result[["tau_u_m_avg"]]
+se_tau_l_m_avg <- result[["se_tau_l_m_avg"]]
+se_tau_u_m_avg <- result[["se_tau_u_m_avg"]]
 ```
 
-### Visualizing missing data
 
-Before conducting any statistical analysis, we use the **panelView** package to visualize the treatment and outcome variables in the data. 
-The following line of code plots the treatment status of all units in **simdata**:
-```{r simdata_panelview_treat, message = FALSE, warning = FALSE, fig.width = 6, fig.height = 4.5}
-
-```
 
 
 ## Covariate-tightened trimming bounds
-
-In the current version of **fect**, we use three methods to make counterfactual predictions by specifying the `method` option: "fe" (two-way fixed effects, default), "ife" (interactive fixed effects), and "mc" (matrix completion method). First, we illustrate the main syntax of **fect** using the "fe" method.
+**CTB** allows users to estimate, we use three methods to make counterfactual predictions by specifying the `method` option: "fe" (two-way fixed effects, default), "ife" (interactive fixed effects), and "mc" (matrix completion method). First, we illustrate the main syntax of **fect** using the "fe" method.
 
 ### Aggregated bounds
 **Estimation.** We estimate the average treatment effect on the treated (ATT) using the following information: the outcome variable $Y$, binary treatment variable $D$, two observed covariates $X_{1}$ and $X_{2}$, and the unit and time indicators $id$ and $time$, respectively. The first variable on the right hand side of the formula is the treatment indicator $D$; the rest of the right-hand-side variables serve as controls. The `index` option specifies the unit and time indicators. The `force` option ("none", "unit", "time", and "two-way") specifies the additive component(s) of the fixed effects included in the model. 

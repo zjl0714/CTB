@@ -1,0 +1,12 @@
+Package: CTB
+Type: Package
+Title: Estimate Aggregated and Conditional Trimming Bounds Using Information from Covariates
+Version: 0.1.0
+Author: Cyrus Samii <cds2083@nyu.edu>, Ye Wang <yewang@unc.edu>, Junlong Aaron Zhou <jlzhou@nyu.edu>
+Maintainer: Ye Wang <yewang@unc.edu>, Junlong Aaron Zhou <jlzhou@nyu.edu>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: MIT + file LICENSE
+Imports: grf (>= 0.12.3), ggplot2 (>= 2.1.0)
+Depends: R (>= 3.5.0)
+Packaged: 2023-06-23 01:36:32 UTC
