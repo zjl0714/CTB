@@ -61,8 +61,8 @@ CTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
   }
 
   parameter_list <- list("aggBounds" = aggBounds, "cBounds" = cBounds,
-                         "missingRate" = missing_rate, "binaryOutcome" = binaryOutcome,
-                         "numCovariates" = p)
+                         "missingRate" = missingRate, "binaryOutcome" = binaryOutcome,
+                         "numCovariates" = P)
 
   data0 <- data[data[, D] == 0, ]
   data1 <- data[data[, D] == 1, ]
@@ -97,7 +97,7 @@ CTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
       result[["se_tau_u_est_avg"]] <- agg.result[["se_tau_u_est_avg"]]
     }
   }else{
-    lee.result <- LBounds_cont(dat_final, Y, X, S, D, W, Pscore,
+    lee.result <- LBounds_cont(dat_final, seed = seed, Y, X, S, D, W, Pscore,
                                cond.mono, direction)
     result[["tau_l_est_lee"]] <- lee.result[["tau_l_est_lee"]]
     result[["tau_u_est_lee"]] <- lee.result[["tau_u_est_lee"]]

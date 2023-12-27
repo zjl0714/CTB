@@ -29,10 +29,139 @@ In this tutorial, we illustrate how to use the **CTB** package in **R** to imple
 
 ##  Simulated data
 In this demo, we will be using **simData** contained in the package. There are $1,000$ units and $10$ covariates in the data, but only one covariate affects both the outcome and the response rate. We describe its DGP in the [paper](https://papers.ssrn.com/abstract=3555463). 
-```{r message = FALSE, warning = FALSE}
+```{r data, message = FALSE, warning = FALSE}
+set.seed(1234)
+library(CTB)
+library(grf)
+data(simData)
+
+N <- nrow(simData)
+
+yrange <- range(c(simData$Y0, simData$Y1))
+xrange <- range(simData$X2)
+
+par(mfrow=c(1,3))
+par(mar = c(5, 5, 4, 2))
+
+plot(Y1 ~ X2, simData,
+     pch=19,
+     col="black",
+     ylim=yrange, xlim=xrange,
+     main="Potential outcomes",
+     xlab=expression('X'[1]), ylab="Y", 
+     cex.lab=2, cex.axis=2)
+points(Y0 ~ X2, simData,
+       pch=21,
+       col="black",
+       bg="white")
+
+plot(subset(simData, D==1&S==1)$X2,
+     subset(simData, D==1&S==1)$Y,
+     ylim=yrange, xlim=xrange,
+     pch=19,
+     col="black",
+     main="Experimental outcomes \n (red means attrited)",
+     xlab=expression('X'[1]), ylab="Y", 
+     cex.lab=2, cex.axis=2)
+points(subset(simData, D==0&S==0)$X2,
+       subset(simData, D==0&S==0)$Y,
+       ylim=yrange, xlim=xrange,
+       pch=19,
+       col="red")
+points(subset(simData, D==1&S==0)$X2,
+       subset(simData, D==1&S==0)$Y,
+       ylim=yrange, xlim=xrange,
+       pch=19,
+       col="red")
+points(subset(simData, D==0&S==1)$X2,
+       subset(simData, D==0&S==1)$Y,
+       pch=21,
+       col="black",
+       bg="white")
+
+plot(subset(simData, D==1&S==1)$X2,
+     subset(simData, D==1&S==1)$Y,
+     ylim=yrange, xlim=xrange,
+     pch=19,
+     col="black",
+     main="Observed outcomes",
+     xlab=expression('X'[1]), ylab="Y", 
+     cex.lab=2, cex.axis=2)
+points(subset(simData, D==0)$X2,
+       subset(simData, D==0)$Y,
+       pch=21,
+       col="black",
+       bg="white")
+
+# generate the data with missing outcome values
+dat <- simData
+dat[dat$S == 0, "Y"] <- NA
+
+cat("The ATE equals ", mean(simData$Y1 - simData$Y0), "\n")
+cat("The ATE for always-responders equals ", mean(true_parameters$Ete_ar), "\n")
+cat("The difference-in-means estimator generates an estimate of ", mean(dat$Y[dat$D == 1 & dat$S == 1]) - mean(dat$Y[dat$D == 0 & dat$S == 1]), "\n")
+```
+
+
+
+## Covariate-tightened trimming bounds
+**CTB** allows users to estimate
+We first estimate the aggregated bounds and the classic Lee bounds.
+```{r agg, message = FALSE, warning = FALSE}
 set.seed(1234)
 library(CTB)
 data(simData)
+
+dat <- simData
+dat[dat$S == 0, "Y"] <- NA
+
+N <- nrow(dat)
+
+X <- c(names(dat)[c(2:12)])
+X_avg <- apply(dat[, X[-2]], 2, mean)
+Xm_evals <- quantile(dat[, "X2"], seq(0.05, 0.95, 0.05))
+X_moderator <- matrix(rep(X_avg, length(Xm_evals)), length(X_avg), length(Xm_evals))
+X_moderator <- rbind(X_moderator, Xm_evals)
+X_moderator <- t(X_moderator)
+X_moderator <- cbind(X_moderator[, 1], X_moderator[, 11], X_moderator[, 2:10])
+
+result <- CTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, cBounds = 1, X_moderator = X_moderator, direction = NULL, cond.mono = FALSE)
+
+tau_l_est_avg <- result[["tau_l_est_avg"]]
+tau_u_est_avg <- result[["tau_u_est_avg"]]
+se_tau_l_est_avg <- result[["se_tau_l_est_avg"]]
+se_tau_u_est_avg <- result[["se_tau_u_est_avg"]]
+  
+tau_l_est_lee <- result[["tau_l_est_lee"]]
+tau_u_est_lee <- result[["tau_u_est_lee"]]
+se_tau_l_est_lee <- result[["se_tau_l_est_lee"]]
+se_tau_u_est_lee <- result[["se_tau_u_est_lee"]]
+```
+
+### Aggregated bounds
+**Estimation.** We estimate the average treatment effect on the treated (ATT) using the following information: the outcome variable $Y$, binary treatment variable $D$, two observed covariates $X_{1}$ and $X_{2}$, and the unit and time indicators $id$ and $time$, respectively. The first variable on the right hand side of the formula is the treatment indicator $D$; the rest of the right-hand-side variables serve as controls. The `index` option specifies the unit and time indicators. The `force` option ("none", "unit", "time", and "two-way") specifies the additive component(s) of the fixed effects included in the model. 
+The default option is "two-way" (including both unit and time fixed effects). 
+
+
+**Uncertainty estimates.** The algorithm produces uncertainty estimates when `se = TRUE`. One can use the non-parametric bootstrap procedure by setting `vartype = "bootstrap"`. Note that it only works well when the number of units is relatively large and many experience the treatment condition. The number of bootstrap runs is set by `nboots`. 
+
+Alternatively, users can obtain uncertainty estimates using the jackknife method by specifying `vartype = "jackknife"`. The algorithm obtains standard errors by iteratively dropping one unit (the entire time-series) from the dataset. 
+
+Parallel computing will speed up both cross-validation and uncertainty estimation significantly. When `parallel = TRUE` (default) and `cores` options are omitted, the algorithm will detect the number of available cores on your computer automatically. (Warning: it may consume most of your computer's computational power if all cores are being used.)
+
+**Result summary.** Users can use the **print** function to take a look at a summary of the estimation results or retrieve relevant statistics by directly accessing the fect object. 
+Specifically, `est.avg` and `est.avg.unit` show the ATT averaged over all periods -- the former weights each treated observation equally while the latter weights each treated unit equally. 
+`est.beta` reports the coefficients of the time-varying covariates. `est.att` reports the average treatment effect on the treated (ATT) by period. Treatment effect estimates from each bootstrap run is stored in `eff.boot`, an array whose dimension = (#time periods * #treated * #bootstrap runs).
+
+
+### Conditional bounds
+```{r cond, message = FALSE, warning = FALSE}
+set.seed(1234)
+library(CTB)
+data(simData)
+
+dat <- simData
+dat[dat$S == 0, "Y"] <- NA
 
 N <- nrow(dat)
 
@@ -53,49 +182,8 @@ se_tau_u_m_avg <- result[["se_tau_u_m_avg"]]
 ```
 
 
-
-
-## Covariate-tightened trimming bounds
-**CTB** allows users to estimate, we use three methods to make counterfactual predictions by specifying the `method` option: "fe" (two-way fixed effects, default), "ife" (interactive fixed effects), and "mc" (matrix completion method). First, we illustrate the main syntax of **fect** using the "fe" method.
-
-### Aggregated bounds
-**Estimation.** We estimate the average treatment effect on the treated (ATT) using the following information: the outcome variable $Y$, binary treatment variable $D$, two observed covariates $X_{1}$ and $X_{2}$, and the unit and time indicators $id$ and $time$, respectively. The first variable on the right hand side of the formula is the treatment indicator $D$; the rest of the right-hand-side variables serve as controls. The `index` option specifies the unit and time indicators. The `force` option ("none", "unit", "time", and "two-way") specifies the additive component(s) of the fixed effects included in the model. 
-The default option is "two-way" (including both unit and time fixed effects). 
-
-
-**Uncertainty estimates.** The algorithm produces uncertainty estimates when `se = TRUE`. One can use the non-parametric bootstrap procedure by setting `vartype = "bootstrap"`. Note that it only works well when the number of units is relatively large and many experience the treatment condition. The number of bootstrap runs is set by `nboots`. 
-
-Alternatively, users can obtain uncertainty estimates using the jackknife method by specifying `vartype = "jackknife"`. The algorithm obtains standard errors by iteratively dropping one unit (the entire time-series) from the dataset. 
-
-Parallel computing will speed up both cross-validation and uncertainty estimation significantly. When `parallel = TRUE` (default) and `cores` options are omitted, the algorithm will detect the number of available cores on your computer automatically. (Warning: it may consume most of your computer's computational power if all cores are being used.)
-
-**Result summary.** Users can use the **print** function to take a look at a summary of the estimation results or retrieve relevant statistics by directly accessing the fect object. 
-Specifically, `est.avg` and `est.avg.unit` show the ATT averaged over all periods -- the former weights each treated observation equally while the latter weights each treated unit equally. 
-`est.beta` reports the coefficients of the time-varying covariates. `est.att` reports the average treatment effect on the treated (ATT) by period. Treatment effect estimates from each bootstrap run is stored in `eff.boot`, an array whose dimension = (#time periods * #treated * #bootstrap runs).
-
-
-### Conditional bounds
-
-
 ### Lee bounds
 
-The package **fect** provides the option balance.period which allows the calculation of the average treatment effects only for units that exhibit complete data in specified pre- and post-treatment periods. For instance, if the option is set to `balance.period = c(-3,4)`, the program will calculate the average treatment effects for units that have at least four consecutive non-missing observations in the pre-treatment periods (-3, -2, -1, 0) and at least four consecutive non-missing observations in the post-treatment periods (1, 2, 3, 4).
-
-We can then visualize the dynamic treatment effects using the inbuilt function **plot**. By default, it displays the dynamic treatment effects of the "balanced" sample.
-
-
-## Heterogeneous treatment effects
-
-
-## Additional Notes
-
-1. By default, the program will drop the units that have no larger than 5 observations under control, 
-which is the reason why sometimes there are less available units in the placebo test or carryover test than in the original estimation. We can specify a preferred criteria in the option `min.T0` (default to 5). 
-As a rule of thumb for the IFE estimator, the minimum number of observations under control for a unit should be larger than the specified number of factor `r`.
-
-2. We can get replicable results by setting the option `seed` to a certain integer, no matter whether the parallel computing is used.
-
-3. When `na.rm = FALSE` (default), the program allows observations to have missing outcomes $Y$ or covariates $X$ but decided treatment statuses $D$. Otherwise the program will drop all observations that have missing values in outcomes, treatments, or covariates. 
 
 ---
 
