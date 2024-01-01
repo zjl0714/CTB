@@ -10,6 +10,21 @@ vignette: >
   %\VignetteIndexEntry{Tutorial}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}  
+header-includes:  
+    - \newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}
+    - \def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+    - \usepackage{tikz}
+    - \usetikzlibrary{positioning,shapes.geometric,chains,calc,shapes}
+    - \usepackage{lmodern}
+    - \usepackage{amssymb,amsmath}
+    - \usepackage{ifxetex,ifluatex}
+    - \usepackage{adjustbox} % adjust the size of table
+    - \usepackage{mathtools}
+    - \usepackage{threeparttable}
+    - \usepackage{tabularx}
+    - \usepackage{rotating}
+    - \usepackage{fixltx2e}
+    - \usepackage{bbm}
 ---
 <!-- 
   Code to Justify Text
@@ -25,10 +40,53 @@ knitr::opts_chunk$set(
 )
 ```  
 
-In this tutorial, we illustrate how to use the **CTB** package in **R** to implement covariate-tightened trimming bounds method proposed by @samii2023generalizing. 
+In this tutorial, we demonstrate how to use the *CTB* package in *R* for implementing the covariate-tightened trimming bounds method proposed by @samii2023generalizing. This method enables empirical researchers to construct bounds for the local average treatment effect on a sub-population known as the always-responders in experiments or quasi-experiments, when faced with missing outcome or sample selection driven by potentially unobservable factors. 
+
+## Introduction of the method
+Consider an experiment with $N$ units. For each unit $i$, we denote the outcome as $Y_i$, the binary treatment status as $D_i$, the binary response indicator as $S_i$, and $P$ pre-treatment covariates as $\mathbf{X}_i = (X_{1i}, X_{2i}, \dots, X_{Pi})$. The outcome $Y_i$ is observed only when $S_i = 1$. $S_i$ stands for the unit's decision to select into the experiment or report the outcome. Therefore, its value could be affected by the treatment status. Under the potential outcome framework, we have
+$$
+Y_i = \begin{cases}
+Y_i(1), D_i = 1 \\
+Y_i(0), D_i = 0,
+\end{cases} \text{ and } S_i = \begin{cases}
+S_i(1), D_i = 1 \\
+S_i(0), D_i = 0.
+\end{cases}
+$$
+For simplicity, we assume that the treatment is randomly assigned with a positive and known probability, hence
+$$
+\begin{aligned}
+& (Y_i(1), Y_i(0), S_i(1), S_i(0)) \perp D_i, \\
+& \varepsilon < P(D_i = 1) < 1 - \varepsilon, \text{ with } \varepsilon > 0.
+\end{aligned}
+$$
+Note that we can only estimate the average outcome in either the treatment group or the control group conditional on the event $S_i = 1$. Since $S_i$ is not randomly assigned, the difference-in-means estimator may no longer be unbiased. Consider the DAG in the figure below. There exists an unobservable variable $U_i$ that affects both $S_i$ and $Y_i$. Then, the difference in the average outcome between the two groups captures the influence of both $U_i$ and $D_i$, hence does not estimate the average treatment effect.
+```{tikz, echo=FALSE, fig.ext = 'png'}
+\begin{tikzpicture}
+[scale=0.7,dot/.style={fill,draw,circle,minimum width=1pt},
+arrow style/.style={->,line width=1pt, shorten <=2pt,shorten >=2pt },
+arrow2 style/.style={->,line width=2pt, shorten <=2pt,shorten >=2pt },]
+\node [fill=white, dot, label=above: $S_{i}$] (s) at (3,3) {}; 
+\node [fill=white, dot, label=below right: $Y_{i}$] (y) at (6,1) {} edge [arrow2 style] (s);
+\node [fill=white, dot, label=below left: $D_{i}$] (d) at (1,1) {} edge [arrow style] (y) edge [arrow2 style] (s);
+\node [fill=black, dot, label=above right: $U_{i}$] (u) at (6,3) {} edge [arrow2 style] (y) edge [arrow2 style] (s);
+\end{tikzpicture}
+```
+
+Conventionally, researchers would address the bias caused by conditioning on $S_i$ with sample selection models [@heckman1979sample] or imputation methods [@honaker2011amelia; @li2013weighting; @blackwell2017unified; @liu2021latent]. Yet these approaches require researchers to possess all the variables that might affect the selection process, which is both unrealistic and against the motivation of running an experiment. One option that does not hinge on such assumptions, proposed by @lee2009training, is to bound the average treatment effect on the always-responders, units whose response indicator equals $1$ no matter under treatment or not. This quantity is formally defined as
+$$
+E[\tau_i | S_i(0) = S_i(1) = 1].
+$$
+From a policy perspective, this subgroup defines units for which the intervention raises the fewest red flags in terms of forcing them into an exercise they find aversive. 
+
+@lee2009training shows that we can bound this quantity under a much weaker assumption known as monotonic selection:
+$$
+S_i(1) \geq S_i(0) \text{ or } S_i(1) \leq S_i(0)
+$$
+for any unit $i$. It means that the treatment either encourages or discourages units to. 
 
 ##  Simulated data
-In this demo, we will be using **simData** contained in the package. There are $1,000$ units and $10$ covariates in the data, but only one covariate affects both the outcome and the response rate. We describe its DGP in the [paper](https://papers.ssrn.com/abstract=3555463). 
+We now demonstrate how to use the main functions in the package with a simulated experiment (*simData*). The dataset includes $1,000$ units. The treatment is randomly assigned with a probability of $0.5$. For each unit, we have $10$ covariates, $X1$ to $X10$. All the covariates are uniformed distributed on $[0, 1]$. Among them, only one ($X1$) affects both the outcome and the response. In addition, there exists a variable ($U \sim unif[-2, 2]$) that is unobservable to researchers but also affects both the outcome and the response. We describe the DGP with more details in the [paper](https://papers.ssrn.com/abstract=3555463). 
 ```{r data, message = FALSE, warning = FALSE}
 set.seed(1234)
 library(CTB)
@@ -39,9 +97,6 @@ N <- nrow(simData)
 
 yrange <- range(c(simData$Y0, simData$Y1))
 xrange <- range(simData$X2)
-
-par(mfrow=c(1,3))
-par(mar = c(5, 5, 4, 2))
 
 plot(Y1 ~ X2, simData,
      pch=19,
@@ -92,7 +147,10 @@ points(subset(simData, D==0)$X2,
        pch=21,
        col="black",
        bg="white")
+```
 
+Plots above show
+```{r estimand, message = FALSE, warning = FALSE}
 # generate the data with missing outcome values
 dat <- simData
 dat[dat$S == 0, "Y"] <- NA
@@ -102,30 +160,16 @@ cat("The ATE for always-responders equals ", mean(true_parameters$Ete_ar), "\n")
 cat("The difference-in-means estimator generates an estimate of ", mean(dat$Y[dat$D == 1 & dat$S == 1]) - mean(dat$Y[dat$D == 0 & dat$S == 1]), "\n")
 ```
 
-
-
 ## Covariate-tightened trimming bounds
 **CTB** allows users to estimate
 We first estimate the aggregated bounds and the classic Lee bounds.
+
+
+### Aggregated bounds
+**Estimation.** We estimate the average treatment effect on the treated (ATT) using the following information: the outcome variable $Y$, binary treatment variable $D$, two observed covariates $X_{1}$ and $X_{2}$, and the unit and time indicators $id$ and $time$, respectively. The first variable on the right hand side of the formula is the treatment indicator $D$; the rest of the right-hand-side variables serve as controls. The `index` option specifies the unit and time indicators. The `force` option ("none", "unit", "time", and "two-way") specifies the additive component(s) of the fixed effects included in the model. 
+The default option is "two-way" (including both unit and time fixed effects). 
 ```{r agg, message = FALSE, warning = FALSE}
-set.seed(1234)
-library(CTB)
-data(simData)
-
-dat <- simData
-dat[dat$S == 0, "Y"] <- NA
-
-N <- nrow(dat)
-
-X <- c(names(dat)[c(2:12)])
-X_avg <- apply(dat[, X[-2]], 2, mean)
-Xm_evals <- quantile(dat[, "X2"], seq(0.05, 0.95, 0.05))
-X_moderator <- matrix(rep(X_avg, length(Xm_evals)), length(X_avg), length(Xm_evals))
-X_moderator <- rbind(X_moderator, Xm_evals)
-X_moderator <- t(X_moderator)
-X_moderator <- cbind(X_moderator[, 1], X_moderator[, 11], X_moderator[, 2:10])
-
-result <- CTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, cBounds = 1, X_moderator = X_moderator, direction = NULL, cond.mono = FALSE)
+result <- CTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, cBounds = 0, X_moderator = NULL, direction = NULL, cond.mono = FALSE)
 
 tau_l_est_avg <- result[["tau_l_est_avg"]]
 tau_u_est_avg <- result[["tau_u_est_avg"]]
@@ -138,16 +182,8 @@ se_tau_l_est_lee <- result[["se_tau_l_est_lee"]]
 se_tau_u_est_lee <- result[["se_tau_u_est_lee"]]
 ```
 
-### Aggregated bounds
-**Estimation.** We estimate the average treatment effect on the treated (ATT) using the following information: the outcome variable $Y$, binary treatment variable $D$, two observed covariates $X_{1}$ and $X_{2}$, and the unit and time indicators $id$ and $time$, respectively. The first variable on the right hand side of the formula is the treatment indicator $D$; the rest of the right-hand-side variables serve as controls. The `index` option specifies the unit and time indicators. The `force` option ("none", "unit", "time", and "two-way") specifies the additive component(s) of the fixed effects included in the model. 
-The default option is "two-way" (including both unit and time fixed effects). 
 
-
-**Uncertainty estimates.** The algorithm produces uncertainty estimates when `se = TRUE`. One can use the non-parametric bootstrap procedure by setting `vartype = "bootstrap"`. Note that it only works well when the number of units is relatively large and many experience the treatment condition. The number of bootstrap runs is set by `nboots`. 
-
-Alternatively, users can obtain uncertainty estimates using the jackknife method by specifying `vartype = "jackknife"`. The algorithm obtains standard errors by iteratively dropping one unit (the entire time-series) from the dataset. 
-
-Parallel computing will speed up both cross-validation and uncertainty estimation significantly. When `parallel = TRUE` (default) and `cores` options are omitted, the algorithm will detect the number of available cores on your computer automatically. (Warning: it may consume most of your computer's computational power if all cores are being used.)
+**Uncertainty estimates.** 
 
 **Result summary.** Users can use the **print** function to take a look at a summary of the estimation results or retrieve relevant statistics by directly accessing the fect object. 
 Specifically, `est.avg` and `est.avg.unit` show the ATT averaged over all periods -- the former weights each treated observation equally while the latter weights each treated unit equally. 
@@ -156,15 +192,6 @@ Specifically, `est.avg` and `est.avg.unit` show the ATT averaged over all period
 
 ### Conditional bounds
 ```{r cond, message = FALSE, warning = FALSE}
-set.seed(1234)
-library(CTB)
-data(simData)
-
-dat <- simData
-dat[dat$S == 0, "Y"] <- NA
-
-N <- nrow(dat)
-
 X <- c(names(dat)[c(2:12)])
 X_avg <- apply(dat[, X[-2]], 2, mean)
 Xm_evals <- quantile(dat[, "X2"], seq(0.05, 0.95, 0.05))
@@ -173,12 +200,12 @@ X_moderator <- rbind(X_moderator, Xm_evals)
 X_moderator <- t(X_moderator)
 X_moderator <- cbind(X_moderator[, 1], X_moderator[, 11], X_moderator[, 2:10])
 
-result <- CTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, cBounds = 1, X_moderator = X_moderator, direction = NULL, cond.mono = TRUE)
-
-tau_l_m_avg <- result[["tau_l_m_avg"]]
-tau_u_m_avg <- result[["tau_u_m_avg"]]
-se_tau_l_m_avg <- result[["se_tau_l_m_avg"]]
-se_tau_u_m_avg <- result[["se_tau_u_m_avg"]]
+# result <- CTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, cBounds = 1, X_moderator = X_moderator, direction = NULL, cond.mono = TRUE)
+# 
+# tau_l_m_avg <- result[["tau_l_m_avg"]]
+# tau_u_m_avg <- result[["tau_u_m_avg"]]
+# se_tau_l_m_avg <- result[["se_tau_l_m_avg"]]
+# se_tau_u_m_avg <- result[["se_tau_u_m_avg"]]
 ```
 
 
