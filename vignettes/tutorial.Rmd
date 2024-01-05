@@ -42,8 +42,8 @@ knitr::opts_chunk$set(
 
 In this tutorial, we demonstrate how to use the *CTB* package in *R* for implementing the covariate-tightened trimming bounds method proposed by @samii2023generalizing. This method enables empirical researchers to construct bounds for the local average treatment effect on a sub-population known as the always-responders in experiments or quasi-experiments, when faced with missing outcome or sample selection driven by potentially unobservable factors. 
 
-## Introduction of the method
-Consider an experiment with $N$ units. For each unit $i$, we denote the outcome as $Y_i$, the binary treatment status as $D_i$, the binary response indicator as $S_i$, and $P$ pre-treatment covariates as $\mathbf{X}_i = (X_{1i}, X_{2i}, \dots, X_{Pi})$. The outcome $Y_i$ is observed only when $S_i = 1$. The variable $S_i$ reflects whether the unit opts to participate in the experiment or report the outcome, and thus, it may be influenced by the treatment status. Under the potential outcome framework, we have
+## Problems with endogenous sample selection
+Consider an experiment with $N$ units. For each unit $i$, we denote the outcome as $Y_i$, the binary treatment status as $D_i$, the binary response indicator as $S_i$, and $P$ pre-treatment covariates as $\mathbf{X}_i = (X_{1i}, X_{2i}, \dots, X_{Pi})$. The outcome $Y_i$ is observed only when $S_i = 1$. The variable $S_i$ reflects whether the unit opts to participate in the experiment or select into reporting the outcome, and thus, it may be influenced by the treatment status. Under the potential outcome framework, we have
 $$
 Y_i = \begin{cases}
 Y_i(1), D_i = 1 \\
@@ -60,7 +60,7 @@ $$
 & \varepsilon < P(D_i = 1) < 1 - \varepsilon, \text{ with } \varepsilon > 0.
 \end{aligned}
 $$
-Note that we can only estimate the average outcome in either the treatment group or the control group conditional on the event $S_i = 1$. Since $S_i$ is not randomly assigned, the difference-in-means estimator may no longer be unbiased. As depicted in the Directed Acyclic Graph (DAG) below, there may exist an unobservable variable $U_i$ influencing both $S_i$ and $Y_i$. Then, the difference in the average outcome across the two groups captures the influence of both $U_i$ and $D_i$, hence does not estimate the average treatment effect accurately.
+Note that we can only estimate the average outcome in either the treatment group or the control group conditional on the event $S_i = 1$. Since $S_i$ is not randomly assigned, the difference-in-means estimator may no longer be unbiased. As depicted in the Directed Acyclic Graph (DAG) below, there may exist an unobservable variable $U_i$ influencing both $S_i$ and $Y_i$. Then, $S_i$ becomes an endogenous variable and we call such a scenario endogenous sample selection. The difference in the average outcome across the two groups now captures the influence of both $U_i$ and $D_i$, hence does not estimate the average treatment effect accurately.
 ```{tikz, echo=FALSE, fig.ext = 'png'}
 \begin{tikzpicture}
 [scale=0.7,dot/.style={fill,draw,circle,minimum width=1pt},
@@ -73,7 +73,10 @@ arrow2 style/.style={->,line width=2pt, shorten <=2pt,shorten >=2pt },]
 \end{tikzpicture}
 ```
 
-Conventionally, to mitigate the bias arising from conditioning on $S_i$, researchers often turn to sample selection models [@heckman1979sample] or various imputation methods [@honaker2011amelia; @li2013weighting; @blackwell2017unified; @liu2021latent]. However, these methods generally assume that researchers have access to all variables influencing the selection process, a condition that is often unrealistic and contradicts the core rationale of conducting an experiment. An alternative approach, which does not rely on such comprehensive knowledge, was proposed by @lee2009training. This method involves bounding the average treatment effect for a specific subgroup known as the always-responders—units whose response indicator remains at $1$ regardless of whether they are under treatment or control conditions. This quantity is formally defined as
+Conventionally, to mitigate the bias arising from conditioning on $S_i$, researchers often turn to sample selection models [@heckman1979sample] or various imputation methods [@honaker2011amelia; @li2013weighting; @blackwell2017unified; @liu2021latent]. However, these methods generally assume that researchers have access to all variables influencing the selection process, a condition that is often unrealistic and contradicts the core rationale of conducting an experiment. 
+
+## Introduction of the method
+An alternative approach, which does not rely on such comprehensive knowledge, was proposed by @lee2009training. This method involves bounding the average treatment effect for a specific subgroup known as the always-responders—units whose response indicator remains at $1$ regardless of whether they are under treatment or control conditions. This quantity is formally defined as
 $$
 \tau(1, 1) = E[\tau_i | S_i(0) = S_i(1) = 1].
 $$
@@ -83,17 +86,18 @@ It is sometimes referred to as the "intensive margin effect" in economics litera
 $$
 S_i(1) \geq S_i(0) \text{ for any unit } i,
 $$
-which means that the treatment encourages all units to participate in the experiment and report the outcome. Obviously, we can also assume the opposition direction holds. This assumption is implied by all sample selection models but allows us to be agnostic of the actual selection process. When it is satisfied, we can see that $E[Y_{i} | D_i = 0, S_i = 1]$ is the expected outcome under control for 
-construct sharp bounds for $\tau(1, 1)$ as follows:
+which means that the treatment encourages all units to participate in the experiment and report the outcome. Obviously, we can also assume the opposition direction is true. This assumption is implied by all sample selection models but does not require us to know the actual selection process. When it is satisfied, @lee2009training proves that we can construct sharp bounds for $\tau(1, 1)$ as follows:
 $$
 \begin{aligned}
-& \tau^L_{TB}(1, 1) = E[Y_{i} | D_i = 1, S_i = 1, Y_i \leq y_{q}] - E[Y_{i} | D_i = 0, S_i = 1], \\
-& \tau^U_{TB}(1, 1) = E[Y_{i} | D_i = 1, S_i = 1, Y_i \geq y_{1-q}] - E[Y_{i} | D_i = 0, S_i = 1], \\
-& \tau^L_{TB}(1, 1) \leq \tau(1, 1) \leq \tau^U_{TB}(1, 1),
+& \tau^L_{TB}(1, 1) \leq \tau(1, 1) \leq \tau^U_{TB}(1, 1), \text{ with} \\
+& \tau^L_{TB}(1, 1) = E[Y_{i} | D_i = 1, S_i = 1, Y_i \leq y_{q}] - E[Y_{i} | D_i = 0, S_i = 1], \text{ and} \\
+& \tau^U_{TB}(1, 1) = E[Y_{i} | D_i = 1, S_i = 1, Y_i \geq y_{1-q}] - E[Y_{i} | D_i = 0, S_i = 1].
 \end{aligned}
 $$
-where $y_{q}$ is the $q$th-quantile of the observed outcome's conditional distribution in the treatment group. It satisfies the condition $\int_{-\infty}^{y_{q}} dF_{Y|D=1, S=1}(y) = q$, with $F_{Y|D=1, S=1}(\cdot)$ being the distribution function for observed treatment group outcomes.
-The quantile $y_{1-q}$ is similarly defined. 
+Here $y_{q}$ is the $q$th-quantile of the observed outcome's conditional distribution in the treatment group. It satisfies the condition $\int_{-\infty}^{y_{q}} dF_{Y|D=1, S=1}(y) = q$, with $F_{Y|D=1, S=1}(\cdot)$ being the distribution function for observed treatment group outcomes.
+The quantile $y_{1-q}$ is similarly defined. Justifications for these bounds are provided in Section 3 of the paper.
+
+One limitation of the basic trimming bounds is that they can be very wide in practice and are not informative at all about the LATE for the always-responders. In @samii2023generalizing, we generalize this method by combining it with machine learning techniques to incorporate information from the covariates. We first illustrate how to estimate these bounds conditional on any values of the covariates using the method of *generalized random forests* [@athey2019generalized], which yields bounds for the conditional LATE and may be of independent interest. Then, by integrating these conditional bounds over the covariates distribution of the always-responders, we obtain the "covariate-tightened trimming bounds." They are typically much narrower than the basic ones. Our algorithm uses both Neyman orthogonalization and cross-fitting, following the recommendations of @chernozhukov2018double, such that the estimator does not suffer from any efficiency loss.
 
 ##  Simulated data
 We now show how to use the main functions in the package with a simulated experiment (*simData*). The dataset includes $1,000$ units. The treatment is randomly assigned with a probability of $0.5$. For each unit, we have $10$ covariates, $X1$ to $X10$. All the covariates are uniformed distributed on $[0, 1]$. Among them, only one ($X1$) affects both the outcome and the response. In addition, there exists a variable ($U \sim unif[-2, 2]$) that is unobservable to researchers but also affects both the outcome and the response. We describe the DGP with more details in the [paper](https://papers.ssrn.com/abstract=3555463). 
@@ -170,14 +174,9 @@ cat("The ATE for always-responders equals ", mean(true_parameters$Ete_ar), "\n")
 cat("The difference-in-means estimator generates an estimate of ", mean(dat$Y[dat$D == 1 & dat$S == 1]) - mean(dat$Y[dat$D == 0 & dat$S == 1]), "\n")
 ```
 
-## Covariate-tightened trimming bounds
+## Aggregated covariate-tightened trimming bounds
 **CTB** allows users to estimate
 We first estimate the aggregated bounds and the classic Lee bounds.
-
-
-### Aggregated bounds
-**Estimation.** We estimate the average treatment effect on the treated (ATT) using the following information: the outcome variable $Y$, binary treatment variable $D$, two observed covariates $X_{1}$ and $X_{2}$, and the unit and time indicators $id$ and $time$, respectively. The first variable on the right hand side of the formula is the treatment indicator $D$; the rest of the right-hand-side variables serve as controls. The `index` option specifies the unit and time indicators. The `force` option ("none", "unit", "time", and "two-way") specifies the additive component(s) of the fixed effects included in the model. 
-The default option is "two-way" (including both unit and time fixed effects). 
 ```{r agg, message = FALSE, warning = FALSE}
 result <- CTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, cBounds = 0, X_moderator = NULL, direction = NULL, cond.mono = FALSE)
 
@@ -200,7 +199,7 @@ Specifically, `est.avg` and `est.avg.unit` show the ATT averaged over all period
 `est.beta` reports the coefficients of the time-varying covariates. `est.att` reports the average treatment effect on the treated (ATT) by period. Treatment effect estimates from each bootstrap run is stored in `eff.boot`, an array whose dimension = (#time periods * #treated * #bootstrap runs).
 
 
-### Conditional bounds
+## Conditional bounds
 ```{r cond, message = FALSE, warning = FALSE}
 X <- c(names(dat)[c(2:12)])
 X_avg <- apply(dat[, X[-2]], 2, mean)
@@ -219,7 +218,7 @@ X_moderator <- cbind(X_moderator[, 1], X_moderator[, 11], X_moderator[, 2:10])
 ```
 
 
-### Lee bounds
+
 
 
 ---

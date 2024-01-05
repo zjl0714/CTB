@@ -377,8 +377,8 @@ bounds for the local average treatment effect on a sub-population known
 as the always-responders in experiments or quasi-experiments, when faced
 with missing outcome or sample selection driven by potentially
 unobservable factors.</p>
-<div id="introduction-of-the-method" class="section level2">
-<h2>Introduction of the method</h2>
+<div id="problems-with-endogenous-sample-selection" class="section level2">
+<h2>Problems with endogenous sample selection</h2>
 <p>Consider an experiment with <span class="math inline">\(N\)</span>
 units. For each unit <span class="math inline">\(i\)</span>, we denote
 the outcome as <span class="math inline">\(Y_i\)</span>, the binary
@@ -388,9 +388,9 @@ response indicator as <span class="math inline">\(S_i\)</span>, and
 X_{Pi})\)</span>. The outcome <span class="math inline">\(Y_i\)</span>
 is observed only when <span class="math inline">\(S_i = 1\)</span>. The
 variable <span class="math inline">\(S_i\)</span> reflects whether the
-unit opts to participate in the experiment or report the outcome, and
-thus, it may be influenced by the treatment status. Under the potential
-outcome framework, we have <span class="math display">\[
+unit opts to participate in the experiment or select into reporting the
+outcome, and thus, it may be influenced by the treatment status. Under
+the potential outcome framework, we have <span class="math display">\[
 Y_i = \begin{cases}
 Y_i(1), D_i = 1 \\
 Y_i(0), D_i = 0,
@@ -409,8 +409,10 @@ assigned with a positive and known probability, hence <span class="math display"
 the treatment group or the control group conditional on the event <span class="math inline">\(S_i = 1\)</span>. Since <span class="math inline">\(S_i\)</span> is not randomly assigned, the
 difference-in-means estimator may no longer be unbiased. As depicted in
 the Directed Acyclic Graph (DAG) below, there may exist an unobservable
-variable <span class="math inline">\(U_i\)</span> influencing both <span class="math inline">\(S_i\)</span> and <span class="math inline">\(Y_i\)</span>. Then, the difference in the average
-outcome across the two groups captures the influence of both <span class="math inline">\(U_i\)</span> and <span class="math inline">\(D_i\)</span>, hence does not estimate the average
+variable <span class="math inline">\(U_i\)</span> influencing both <span class="math inline">\(S_i\)</span> and <span class="math inline">\(Y_i\)</span>. Then, <span class="math inline">\(S_i\)</span> becomes an endogenous variable and we
+call such a scenario endogenous sample selection. The difference in the
+average outcome across the two groups now captures the influence of both
+<span class="math inline">\(U_i\)</span> and <span class="math inline">\(D_i\)</span>, hence does not estimate the average
 treatment effect accurately. <img src="data:image/png;base64,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" /><!-- --></p>
 <p>Conventionally, to mitigate the bias arising from conditioning on
 <span class="math inline">\(S_i\)</span>, researchers often turn to
@@ -420,12 +422,17 @@ Blackwell 2011; Li et al. 2013; Blackwell, Honaker, and King 2017; Liu
 2021)</span>. However, these methods generally assume that researchers
 have access to all variables influencing the selection process, a
 condition that is often unrealistic and contradicts the core rationale
-of conducting an experiment. An alternative approach, which does not
-rely on such comprehensive knowledge, was proposed by <span class="citation">Lee (2009)</span>. This method involves bounding the
-average treatment effect for a specific subgroup known as the
-always-responders—units whose response indicator remains at <span class="math inline">\(1\)</span> regardless of whether they are under
-treatment or control conditions. This quantity is formally defined as
-<span class="math display">\[
+of conducting an experiment.</p>
+</div>
+<div id="introduction-of-the-method" class="section level2">
+<h2>Introduction of the method</h2>
+<p>An alternative approach, which does not rely on such comprehensive
+knowledge, was proposed by <span class="citation">Lee (2009)</span>.
+This method involves bounding the average treatment effect for a
+specific subgroup known as the always-responders—units whose response
+indicator remains at <span class="math inline">\(1\)</span> regardless
+of whether they are under treatment or control conditions. This quantity
+is formally defined as <span class="math display">\[
 \tau(1, 1) = E[\tau_i | S_i(0) = S_i(1) = 1].
 \]</span> It is sometimes referred to as the “intensive margin effect”
 in economics literature <span class="citation">(Staub 2014; Slough
@@ -438,23 +445,42 @@ assumption known as monotonic selection: <span class="math display">\[
 S_i(1) \geq S_i(0) \text{ for any unit } i,
 \]</span> which means that the treatment encourages all units to
 participate in the experiment and report the outcome. Obviously, we can
-also assume the opposition direction holds. This assumption is implied
-by all sample selection models but allows us to be agnostic of the
-actual selection process. When it is satisfied, we can see that <span class="math inline">\(E[Y_{i} | D_i = 0, S_i = 1]\)</span> is the
-expected outcome under control for construct sharp bounds for <span class="math inline">\(\tau(1, 1)\)</span> as follows: <span class="math display">\[
+also assume the opposition direction is true. This assumption is implied
+by all sample selection models but does not require us to know the
+actual selection process. When it is satisfied, <span class="citation">Lee (2009)</span> proves that we can construct sharp
+bounds for <span class="math inline">\(\tau(1, 1)\)</span> as follows:
+<span class="math display">\[
 \begin{aligned}
+&amp; \tau^L_{TB}(1, 1) \leq \tau(1, 1) \leq \tau^U_{TB}(1, 1), \text{
+with} \\
 &amp; \tau^L_{TB}(1, 1) = E[Y_{i} | D_i = 1, S_i = 1, Y_i \leq y_{q}] -
-E[Y_{i} | D_i = 0, S_i = 1], \\
+E[Y_{i} | D_i = 0, S_i = 1], \text{ and} \\
 &amp; \tau^U_{TB}(1, 1) = E[Y_{i} | D_i = 1, S_i = 1, Y_i \geq y_{1-q}]
-- E[Y_{i} | D_i = 0, S_i = 1], \\
-&amp; \tau^L_{TB}(1, 1) \leq \tau(1, 1) \leq \tau^U_{TB}(1, 1),
+- E[Y_{i} | D_i = 0, S_i = 1].
 \end{aligned}
-\]</span> where <span class="math inline">\(y_{q}\)</span> is the <span class="math inline">\(q\)</span>th-quantile of the observed outcome’s
+\]</span> Here <span class="math inline">\(y_{q}\)</span> is the <span class="math inline">\(q\)</span>th-quantile of the observed outcome’s
 conditional distribution in the treatment group. It satisfies the
 condition <span class="math inline">\(\int_{-\infty}^{y_{q}} dF_{Y|D=1,
 S=1}(y) = q\)</span>, with <span class="math inline">\(F_{Y|D=1,
 S=1}(\cdot)\)</span> being the distribution function for observed
-treatment group outcomes. The quantile <span class="math inline">\(y_{1-q}\)</span> is similarly defined.</p>
+treatment group outcomes. The quantile <span class="math inline">\(y_{1-q}\)</span> is similarly defined.
+Justifications for these bounds are provided in Section 3 of the
+paper.</p>
+<p>One limitation of the basic trimming bounds is that they can be very
+wide in practice and are not informative at all about the LATE for the
+always-responders. In <span class="citation">Samii, Wang, and Zhou
+(2023)</span>, we generalize this method by combining it with machine
+learning techniques to incorporate information from the covariates. We
+first illustrate how to estimate these bounds conditional on any values
+of the covariates using the method of <em>generalized random
+forests</em> <span class="citation">(Athey, Tibshirani, and Wager
+2019)</span>, which yields bounds for the conditional LATE and may be of
+independent interest. Then, by integrating these conditional bounds over
+the covariates distribution of the always-responders, we obtain the
+“covariate-tightened trimming bounds.” They are typically much narrower
+than the basic ones. Our algorithm uses both Neyman orthogonalization
+and cross-fitting, following the recommendations of <span class="citation">Chernozhukov et al. (2018)</span>, such that the
+estimator does not suffer from any efficiency loss.</p>
 </div>
 <div id="simulated-data" class="section level2">
 <h2>Simulated data</h2>
@@ -542,24 +568,11 @@ describe the DGP with more details in the <a href="https://papers.ssrn.com/abstr
 <span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;The difference-in-means estimator generates an estimate of &quot;</span>, <span class="fu">mean</span>(dat<span class="sc">$</span>Y[dat<span class="sc">$</span>D <span class="sc">==</span> <span class="dv">1</span> <span class="sc">&amp;</span> dat<span class="sc">$</span>S <span class="sc">==</span> <span class="dv">1</span>]) <span class="sc">-</span> <span class="fu">mean</span>(dat<span class="sc">$</span>Y[dat<span class="sc">$</span>D <span class="sc">==</span> <span class="dv">0</span> <span class="sc">&amp;</span> dat<span class="sc">$</span>S <span class="sc">==</span> <span class="dv">1</span>]), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
 <span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; The difference-in-means estimator generates an estimate of  5.213578</span></span></code></pre></div>
 </div>
-<div id="covariate-tightened-trimming-bounds" class="section level2">
-<h2>Covariate-tightened trimming bounds</h2>
+<div id="basic-trimming-bounds-and-aggregated-covariate-tightened-trimming-bounds" class="section level2">
+<h2>Basic trimming bounds and aggregated covariate-tightened trimming
+bounds</h2>
 <p><strong>CTB</strong> allows users to estimate We first estimate the
 aggregated bounds and the classic Lee bounds.</p>
-<div id="aggregated-bounds" class="section level3">
-<h3>Aggregated bounds</h3>
-<p><strong>Estimation.</strong> We estimate the average treatment effect
-on the treated (ATT) using the following information: the outcome
-variable <span class="math inline">\(Y\)</span>, binary treatment
-variable <span class="math inline">\(D\)</span>, two observed covariates
-<span class="math inline">\(X_{1}\)</span> and <span class="math inline">\(X_{2}\)</span>, and the unit and time indicators
-<span class="math inline">\(id\)</span> and <span class="math inline">\(time\)</span>, respectively. The first variable on
-the right hand side of the formula is the treatment indicator <span class="math inline">\(D\)</span>; the rest of the right-hand-side
-variables serve as controls. The <code>index</code> option specifies the
-unit and time indicators. The <code>force</code> option (“none”, “unit”,
-“time”, and “two-way”) specifies the additive component(s) of the fixed
-effects included in the model. The default option is “two-way”
-(including both unit and time fixed effects).</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">CTB</span>(<span class="at">data =</span> dat, <span class="at">seed =</span> <span class="cn">NULL</span>, <span class="at">Y =</span> <span class="st">&quot;Y&quot;</span>, <span class="at">D =</span> <span class="st">&quot;D&quot;</span>, <span class="at">S =</span> <span class="st">&quot;S&quot;</span>, <span class="at">X =</span> <span class="fu">c</span>(<span class="fu">names</span>(dat)[<span class="fu">c</span>(<span class="dv">2</span><span class="sc">:</span><span class="dv">12</span>)]), <span class="at">W =</span> <span class="cn">NULL</span>, <span class="at">Pscore =</span> <span class="st">&quot;Ps&quot;</span>, <span class="at">cv_fold =</span> <span class="dv">5</span>, <span class="at">aggBounds =</span> <span class="dv">1</span>, <span class="at">cBounds =</span> <span class="dv">0</span>, <span class="at">X_moderator =</span> <span class="cn">NULL</span>, <span class="at">direction =</span> <span class="cn">NULL</span>, <span class="at">cond.mono =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; The average missing rate is  0.387 </span></span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; S(1) &gt; S(0) </span></span>
@@ -588,8 +601,8 @@ Treatment effect estimates from each bootstrap run is stored in
 <code>eff.boot</code>, an array whose dimension = (#time periods *
 #treated * #bootstrap runs).</p>
 </div>
-<div id="conditional-bounds" class="section level3">
-<h3>Conditional bounds</h3>
+<div id="conditional-bounds" class="section level2">
+<h2>Conditional bounds</h2>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">names</span>(dat)[<span class="fu">c</span>(<span class="dv">2</span><span class="sc">:</span><span class="dv">12</span>)])</span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>X_avg <span class="ot">&lt;-</span> <span class="fu">apply</span>(dat[, X[<span class="sc">-</span><span class="dv">2</span>]], <span class="dv">2</span>, mean)</span>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>Xm_evals <span class="ot">&lt;-</span> <span class="fu">quantile</span>(dat[, <span class="st">&quot;X2&quot;</span>], <span class="fu">seq</span>(<span class="fl">0.05</span>, <span class="fl">0.95</span>, <span class="fl">0.05</span>))</span>
@@ -604,20 +617,27 @@ Treatment effect estimates from each bootstrap run is stored in
 <span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co"># tau_u_m_avg &lt;- result[[&quot;tau_u_m_avg&quot;]]</span></span>
 <span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co"># se_tau_l_m_avg &lt;- result[[&quot;se_tau_l_m_avg&quot;]]</span></span>
 <span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co"># se_tau_u_m_avg &lt;- result[[&quot;se_tau_u_m_avg&quot;]]</span></span></code></pre></div>
-</div>
-<div id="lee-bounds" class="section level3">
-<h3>Lee bounds</h3>
 <hr />
-</div>
 </div>
 <div id="reference" class="section level1 unnumbered">
 <h1 class="unnumbered">Reference</h1>
 <div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-athey2019generalized" class="csl-entry">
+Athey, Susan, Julie Tibshirani, and Stefan Wager. 2019.
+<span>“Generalized Random Forests.”</span> <em>The Annals of
+Statistics</em> 47 (2): 1148–78.
+</div>
 <div id="ref-blackwell2017unified" class="csl-entry">
 Blackwell, Matthew, James Honaker, and Gary King. 2017. <span>“A Unified
 Approach to Measurement Error and Missing Data: Overview and
 Applications.”</span> <em>Sociological Methods &amp; Research</em> 46
 (3): 303–41.
+</div>
+<div id="ref-chernozhukov2018double" class="csl-entry">
+Chernozhukov, Victor, Denis Chetverikov, Mert Demirer, Esther Duflo,
+Christian Hansen, Whitney Newey, and James Robins. 2018.
+<span>“Double/Debiased Machine Learning for Treatment and Structural
+Parameters.”</span> <em>The Econometrics Journal</em> 21 (1): C1–68.
 </div>
 <div id="ref-heckman1979sample" class="csl-entry">
 Heckman, James J. 1979. <span>“Sample Selection Bias as a Specification
