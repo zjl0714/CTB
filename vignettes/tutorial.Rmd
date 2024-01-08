@@ -220,7 +220,189 @@ X_moderator <- cbind(X_moderator[, 1], X_moderator[, 11], X_moderator[, 2:10])
 
 
 
+## Application
 
+We now discuss how to replicate the application studies in the paper.
+
+### Santoro and Broockman (2022)
+
+@kalla2022outside studies the effect
+of talking with a partner from a different party on attitude toward the other parties. 
+The subjects were then randomly assigned into either the treatment group ($D_i = 1$), 
+in which they were informed that the partner would be an outpartisan, 
+or the control group ($D_i = 0$), in which they received no extra information.
+The selection variable is whether the subjects respond to the given question $S_i\in(1,0)$. 
+
+We focus onthe "warmth toward outpartisan voters" outcome (measured by a rescaled thermometer) and
+rely on the same covariates the authors selected for their analysis, including the age, gender,
+race, education level, and party identification of the subjects, as well as their pre-treatment
+outcome.
+
+We present the our CTTB, Lee bounds (conditional monotonic and strict monotonic), and OLS results.
+
+```{r santoro2022 result, message = FALSE, warning = FALSE}
+seed <- 42
+dat <- get(load("santoro_replic.RData"))
+
+result <- CTTB(data = dat, seed = seed, 
+               Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
+               regression.splitting = FALSE, cv_fold = 5,
+               aggBounds = 1,
+               cBounds = 0, X_moderator = NULL, 
+               LeeBounds = 1, direction = NULL,
+               cond.mono = 0)
+
+tau_l_est_avg <- result[["tau_l_est_avg"]]
+tau_u_est_avg <- result[["tau_u_est_avg"]]
+se_tau_l_est_avg <- result[["se_tau_l_est_avg"]]
+se_tau_u_est_avg <- result[["se_tau_u_est_avg"]]
+
+tau_l_est_lee_mono <- result[["tau_l_est_lee"]]
+tau_u_est_lee_mono <- result[["tau_u_est_lee"]]
+se_tau_l_est_lee_mono <- result[["se_tau_l_est_lee"]]
+se_tau_u_est_lee_mono <- result[["se_tau_u_est_lee"]]
+```
+
+Here `LeeBounds = 1` indicates we want Lee bounds and `cond.mono = 0` indicates we want strict
+monotonicity for Lee bounds. 
+For our CTTB, the conditional monotonicity is always set as default.
+
+
+By setting `cond.mono = 1`, we allow the Lee bounds also have conditional monotonicity.
+
+```{r santoro2022 result2, message = FALSE, warning = FALSE}
+result.lee <- CTTB(data = dat, seed = seed, 
+                   Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
+                   regression.splitting = FALSE, cv_fold = 5,
+                   aggBounds = 0,
+                   cBounds = 0, X_moderator = NULL, 
+                   LeeBounds = 1, direction = NULL,
+                   cond.mono = 1)
+
+tau_l_est_lee_condmono <- result.lee[["tau_l_est_lee"]]
+tau_u_est_lee_condmono <- result.lee[["tau_u_est_lee"]]
+se_tau_l_est_lee_condmono <- result.lee[["se_tau_l_est_lee"]]
+se_tau_u_est_lee_condmono <- result.lee[["se_tau_u_est_lee"]]
+
+```
+
+
+
+```{r santoro2022 result3 , message = FALSE, warning = FALSE}
+# estimate the ate using observations that select into the sample
+reg_formula <- as.formula(paste0(Y, "~", D, "+", paste0(X, collapse = "+")))
+tau_reg <- lm(reg_formula, dat[dat[, S] == 1, ])
+tau_ate <- coef(tau_reg)[2]
+se_tau_ate <- sqrt(vcovHC(tau_reg, type = "HC1")[2, 2])
+sqrt(vcovCL(tau_reg, cluster = dat$allsides_link)[2, 2])
+
+all_ests <- c(tau_l_est_avg, tau_u_est_avg, 
+              tau_l_est_lee_condmono, tau_u_est_lee_condmono,
+              tau_l_est_lee_mono, tau_u_est_lee_mono,
+              tau_ate)
+all_CI95_upper <- c(tau_l_est_avg + 1.96*se_tau_l_est_avg, 
+                    tau_u_est_avg + 1.96*se_tau_u_est_avg, 
+                    tau_l_est_lee_condmono + 1.96*se_tau_l_est_lee_condmono, 
+                    tau_u_est_lee_condmono + 1.96*se_tau_u_est_lee_condmono,
+                    tau_l_est_lee_mono + 1.96*se_tau_l_est_lee_mono, 
+                    tau_u_est_lee_mono + 1.96*se_tau_u_est_lee_mono,
+                    tau_ate + 1.96*se_tau_ate)
+all_CI95_lower <- c(tau_l_est_avg - 1.96*se_tau_l_est_avg, 
+                    tau_u_est_avg - 1.96*se_tau_u_est_avg, 
+                    tau_l_est_lee_condmono - 1.96*se_tau_l_est_lee_condmono, 
+                    tau_u_est_lee_condmono - 1.96*se_tau_u_est_lee_condmono,
+                    tau_l_est_lee_mono - 1.96*se_tau_l_est_lee_mono, 
+                    tau_u_est_lee_mono - 1.96*se_tau_u_est_lee_mono,
+                    tau_ate - 1.96*se_tau_ate)
+
+method <- c("CTB", "CTB", "TB (cond. mono.)", "TB (cond. mono.)", "TB (mono.)", "TB (mono.)", "OLS")
+method <- factor(method, levels = c("OLS", "TB (mono.)", "TB (cond. mono.)", "CTB"))
+
+type <- c("Lower", "Upper", "Lower", "Upper", "Lower", "Upper", "ATE")
+
+p.data <- data.frame("Estimates" = round(all_ests, 3), "CI95_u" = round(all_CI95_upper, 3), 
+                     "CI95_l" = round(all_CI95_lower, 3), "Method" = method, "Estimand" = type)
+ 
+pd <- position_dodge(width=0.2)
+coefs_p <- ggplot(p.data, aes(Method, Estimates, color=Estimand)) +
+  geom_point(aes(shape=Method), size=4, position=pd, show.legend = FALSE) +
+  scale_color_manual(name="Estimand",values=c("black", "blue", "red")) +
+  scale_shape_manual(name="Method",values=c(19, 17, 17, 15)) +
+  theme_bw() +
+  geom_errorbar(aes(Method, ymin=CI95_l, ymax=CI95_u), width=0.1, position=pd) + 
+  geom_hline(aes(yintercept = 0), colour = "black", lty=2) + xlab('') + ylab('') +
+  theme(plot.title = element_text(hjust = 0.5), text = element_text(size=25), axis.text.x = element_text(angle = 0), legend.position="top") + 
+  ylab("Impact on warmth toward outparty voters") +
+  coord_flip()
+coefs_p
+```
+
+We show how to estimate the conditional bounds. We set the age
+as moderator, and keep all other variables at the sample mean. 
+
+
+```{r santoro 2022 moderate, message = FALSE, warning = FALSE}
+X_avg <- c(mean(dat[, X[2]]), c(1, rep(0, 5)), c(0, 1, rep(0, 3)), c(rep(0, 3), 1, 0), c(1, rep(0, 2)), c(rep(0, 10), 1, rep(0, 14)))
+Xm_evals <- unique(quantile(dat[, X[1]], seq(0.1, 0.9, 0.1)))
+X_moderator <- matrix(rep(X_avg, length(Xm_evals)), length(X_avg), length(Xm_evals))
+X_moderator <- rbind(X_moderator, Xm_evals)
+X_moderator <- t(X_moderator)
+X_moderator <- cbind(X_moderator[, 46], X_moderator[, 1:45])
+
+pf0_pred_m <- predict(pf0, newdata = as.matrix(X_moderator))
+pf1_pred_m <- predict(pf1, newdata = as.matrix(X_moderator))
+
+# estimate Relative share of always-responders
+one_q0_m <- pf0_pred_m$predictions[, 2]
+one_q1_m <- pf1_pred_m$predictions[, 2]
+one_q <- one_q0_m / one_q1_m
+one_q[one_q > 1] <- 1/one_q[one_q > 1]
+
+result <- CTTB(data = dat, seed = seed,
+               Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
+               regression.splitting = FALSE, cv_fold = 5,
+               aggBounds = 0,
+               cBounds = 1, X_moderator = X_moderator, 
+               LeeBounds = 0, direction = NULL,
+               cond.mono = 0)
+
+tau_l_m_avg <- result[["tau_l_m_avg"]]
+tau_u_m_avg <- result[["tau_u_m_avg"]]
+se_tau_l_m_avg <- result[["se_tau_l_m_avg"]]
+se_tau_u_m_avg <- result[["se_tau_u_m_avg"]]
+
+```
+
+Setting `cBounds = 1` allows the estimation of conditional bounds.
+It needs another argument, `X_moderator`, which is a data frame, for which we estimate
+the conditional bounds.
+
+The results are plot as follows:
+```{r santoro result plot, message=FALSE, warning=FALSE}
+
+pdata_m <- data.frame("X" = X_moderator[, 1], "tau_u_m_avg" = tau_u_m_avg,
+                      "tau_l_m_avg" = tau_l_m_avg, "se_tau_u_m_avg" = se_tau_u_m_avg,
+                      "se_tau_l_m_avg" = se_tau_l_m_avg, "one_q" = one_q)
+pdata_m <- pdata_m[order(pdata_m$X), ] 
+par(mar = c(5, 5, 2, 2))
+plot(tau_u_m_avg ~ X, pdata_m, type = "p", ylab = "Conditional bounds", 
+     xlab = "Age", col = "red", ylim = c(-.8, 2.2), pch = 20,
+     cex = 2, cex.lab=2, cex.axis=2)
+lines(tau_u_m_avg - 1.96*se_tau_u_m_avg ~ X, pdata_m, col = "red", lty = 3, lwd = 1)
+lines(tau_u_m_avg + 1.96*se_tau_u_m_avg ~ X, pdata_m, col = "red", lty = 3, lwd = 1)
+points(tau_l_m_avg ~ X, pdata_m, col = "blue", lty = 2, pch = 20, cex = 2)
+lines(tau_l_m_avg - 1.96*se_tau_l_m_avg ~ X, pdata_m, col = "blue", lty = 3, lwd =1)
+lines(tau_l_m_avg + 1.96*se_tau_l_m_avg ~ X, pdata_m, col = "blue", lty = 3, lwd = 1)
+lines(one_q ~ X, pdata_m, col = "black", lty = 4, lwd = 1)
+abline(h = 0, lty = 2, col = "gray", lwd = 1)
+legend("topleft", pch = c(20, 20, NA, NA, NA), lty = c(NA, NA, 3, 3, 4), lwd = c(NA, NA, 1, 1, 1),
+       col = c("red", "blue", "red", "blue", "black"),
+       legend = c("Upper bounds", "Lower bounds", "95% CI of upper bounds", "95% CI of lower bounds", "Relative share of always-responders"), 
+       cex = 2, bty = "n")
+
+```
+
+ 
 ---
 
 # Reference
