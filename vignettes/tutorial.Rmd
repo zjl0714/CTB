@@ -43,7 +43,7 @@ knitr::opts_chunk$set(
 In this tutorial, we demonstrate how to use the *CTB* package in *R* for implementing the covariate-tightened trimming bounds method proposed by @samii2023generalizing. This method enables empirical researchers to construct bounds for the local average treatment effect on a sub-population known as the always-responders in experiments or quasi-experiments, when faced with missing outcome or sample selection driven by potentially unobservable factors. 
 
 ## Problems with endogenous sample selection
-Consider an experiment with $N$ units. For each unit $i$, we denote the outcome as $Y_i$, the binary treatment status as $D_i$, the binary response indicator as $S_i$, and $P$ pre-treatment covariates as $\mathbf{X}_i = (X_{1i}, X_{2i}, \dots, X_{Pi})$. The outcome $Y_i$ is observed only when $S_i = 1$. The variable $S_i$ reflects whether the unit opts to participate in the experiment or select into reporting the outcome, and thus, it may be influenced by the treatment status. Under the potential outcome framework, we have
+Consider an experiment with $N$ units. For each unit $i$, we denote the outcome as $Y_i$, the binary treatment status as $D_i$, the binary response indicator as $S_i$, and $P$ pre-treatment covariates as $\mathbf{X}_i = (X_{1i}, X_{2i}, \dots, X_{Pi})$. The outcome $Y_i$ is observed only when $S_i = 1$. The variable $S_i$ reflects whether the unit opts to participate in the experiment or selects into reporting the outcome, and it may be influenced by the treatment status. Under the potential outcome framework, we have
 $$
 Y_i = \begin{cases}
 Y_i(1), D_i = 1 \\
@@ -60,8 +60,8 @@ $$
 & \varepsilon < P(D_i = 1) < 1 - \varepsilon, \text{ with } \varepsilon > 0.
 \end{aligned}
 $$
-Note that we can only estimate the average outcome in either the treatment group or the control group conditional on the event $S_i = 1$. Since $S_i$ is not randomly assigned, the difference-in-means estimator may no longer be unbiased. As depicted in the Directed Acyclic Graph (DAG) below, there may exist an unobservable variable $U_i$ influencing both $S_i$ and $Y_i$. Then, $S_i$ becomes an endogenous variable and we call such a scenario endogenous sample selection. The difference in the average outcome across the two groups now captures the influence of both $U_i$ and $D_i$, hence does not estimate the average treatment effect accurately.
-```{tikz, echo=FALSE, fig.ext = 'png'}
+Note that we can only estimate the average outcome in either the treatment group or the control group conditional on the event $S_i = 1$. Since $S_i$ is not randomly assigned, the difference-in-means estimator may no longer be unbiased. As depicted in the Directed Acyclic Graph (DAG) below, there may exist an unobservable variable $U_i$ influencing both $S_i$ and $Y_i$. Then, $S_i$ becomes an endogenous variable and we have the problem of endogenous sample selection. The difference in the average outcome across the two groups now captures the influence of both $U_i$ and $D_i$, hence does not estimate the average treatment effect accurately.
+```{tikz, echo=FALSE, fig.ext = 'png', out.width="60%", , out.height="60%", fig.align = 'center'}
 \begin{tikzpicture}
 [scale=0.7,dot/.style={fill,draw,circle,minimum width=1pt},
 arrow style/.style={->,line width=1pt, shorten <=2pt,shorten >=2pt },
@@ -101,10 +101,11 @@ One limitation of the basic trimming bounds is that they can be very wide in pra
 
 ##  Simulated data
 We now show how to use the main functions in the package with a simulated experiment (*simData*). The dataset includes $1,000$ units. The treatment is randomly assigned with a probability of $0.5$. For each unit, we have $10$ covariates, $X1$ to $X10$. All the covariates are uniformed distributed on $[0, 1]$. Among them, only one ($X1$) affects both the outcome and the response. In addition, there exists a variable ($U \sim unif[-2, 2]$) that is unobservable to researchers but also affects both the outcome and the response. We describe the DGP with more details in the [paper](https://papers.ssrn.com/abstract=3555463). 
-```{r data, message = FALSE, warning = FALSE}
+```{r data, message = FALSE, warning = FALSE, fig.ext = 'png', out.width="60%", , out.height="60%", fig.align = 'center'}
 set.seed(1234)
 library(CTB)
 library(grf)
+library(ggplot2)
 data(simData)
 
 N <- nrow(simData)
@@ -112,17 +113,19 @@ N <- nrow(simData)
 yrange <- range(c(simData$Y0, simData$Y1))
 xrange <- range(simData$X2)
 
+par(mfrow = c(1, 1))
 plot(Y1 ~ X2, simData,
      pch=19,
      col="black",
      ylim=yrange, xlim=xrange,
      main="Potential outcomes",
      xlab=expression('X'[1]), ylab="Y", 
-     cex.lab=2, cex.axis=2)
+     cex.lab=1, cex.axis=1, cex = .4)
 points(Y0 ~ X2, simData,
        pch=21,
        col="black",
-       bg="white")
+       bg="white", 
+       cex = .4)
 
 plot(subset(simData, D==1&S==1)$X2,
      subset(simData, D==1&S==1)$Y,
@@ -131,22 +134,25 @@ plot(subset(simData, D==1&S==1)$X2,
      col="black",
      main="Experimental outcomes \n (red means attrited)",
      xlab=expression('X'[1]), ylab="Y", 
-     cex.lab=2, cex.axis=2)
+     cex.lab=1, cex.axis=1, cex = .4)
 points(subset(simData, D==0&S==0)$X2,
        subset(simData, D==0&S==0)$Y,
        ylim=yrange, xlim=xrange,
        pch=19,
-       col="red")
+       col="red", 
+       cex = .4)
 points(subset(simData, D==1&S==0)$X2,
        subset(simData, D==1&S==0)$Y,
        ylim=yrange, xlim=xrange,
        pch=19,
-       col="red")
+       col="red", 
+       cex = .4)
 points(subset(simData, D==0&S==1)$X2,
        subset(simData, D==0&S==1)$Y,
        pch=21,
        col="black",
-       bg="white")
+       bg="white", 
+       cex = .4)
 
 plot(subset(simData, D==1&S==1)$X2,
      subset(simData, D==1&S==1)$Y,
@@ -155,12 +161,13 @@ plot(subset(simData, D==1&S==1)$X2,
      col="black",
      main="Observed outcomes",
      xlab=expression('X'[1]), ylab="Y", 
-     cex.lab=2, cex.axis=2)
+     cex.lab=1, cex.axis=1, cex = .4)
 points(subset(simData, D==0)$X2,
        subset(simData, D==0)$Y,
        pch=21,
        col="black",
-       bg="white")
+       bg="white", 
+       cex = .4)
 ```
 
 Plots above show
@@ -244,13 +251,19 @@ We present the our CTTB, Lee bounds (conditional monotonic and strict monotonic)
 seed <- 42
 dat <- get(load("santoro_replic.RData"))
 
-result <- CTTB(data = dat, seed = seed, 
-               Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
-               regression.splitting = FALSE, cv_fold = 5,
-               aggBounds = 1,
-               cBounds = 0, X_moderator = NULL, 
-               LeeBounds = 1, direction = NULL,
-               cond.mono = 0)
+
+Y <- "post_therm_voter_outparty_rescaled"
+S <- "began_convo"
+D <- "condition"
+X <- names(dat)[c(4, 10, 19:62)]
+
+result <- CTB(data = dat, seed = seed, 
+              Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
+              regression.splitting = FALSE, cv_fold = 5,
+              aggBounds = 1,
+              cBounds = 0, X_moderator = NULL, 
+              direction = NULL,
+              cond.mono = 0)
 
 tau_l_est_avg <- result[["tau_l_est_avg"]]
 tau_u_est_avg <- result[["tau_u_est_avg"]]
@@ -271,13 +284,13 @@ For our CTTB, the conditional monotonicity is always set as default.
 By setting `cond.mono = 1`, we allow the Lee bounds also have conditional monotonicity.
 
 ```{r santoro2022 result2, message = FALSE, warning = FALSE}
-result.lee <- CTTB(data = dat, seed = seed, 
-                   Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
-                   regression.splitting = FALSE, cv_fold = 5,
-                   aggBounds = 0,
-                   cBounds = 0, X_moderator = NULL, 
-                   LeeBounds = 1, direction = NULL,
-                   cond.mono = 1)
+result.lee <- CTB(data = dat, seed = seed, 
+                  Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
+                  regression.splitting = FALSE, cv_fold = 5,
+                  aggBounds = 0,
+                  cBounds = 0, X_moderator = NULL, 
+                  direction = NULL,
+                  cond.mono = 1)
 
 tau_l_est_lee_condmono <- result.lee[["tau_l_est_lee"]]
 tau_u_est_lee_condmono <- result.lee[["tau_u_est_lee"]]
@@ -290,6 +303,7 @@ se_tau_u_est_lee_condmono <- result.lee[["se_tau_u_est_lee"]]
 
 ```{r santoro2022 result3 , message = FALSE, warning = FALSE}
 # estimate the ate using observations that select into the sample
+library(sandwich)
 reg_formula <- as.formula(paste0(Y, "~", D, "+", paste0(X, collapse = "+")))
 tau_reg <- lm(reg_formula, dat[dat[, S] == 1, ])
 tau_ate <- coef(tau_reg)[2]
@@ -349,6 +363,12 @@ X_moderator <- rbind(X_moderator, Xm_evals)
 X_moderator <- t(X_moderator)
 X_moderator <- cbind(X_moderator[, 46], X_moderator[, 1:45])
 
+pf0 <- probability_forest(X = as.matrix(dat[dat[, D] == 0, X]), Y = as.factor(unlist(dat[dat[, D] == 0, S])), seed = seed)
+pf1 <- probability_forest(X = as.matrix(dat[dat[, D] == 1, X]), Y = as.factor(unlist(dat[dat[, D] == 1, S])), seed = seed)
+
+pf0_pred <- predict(pf0, newdata = as.matrix(dat[, X]))
+pf1_pred <- predict(pf1, newdata = as.matrix(dat[, X]))
+
 pf0_pred_m <- predict(pf0, newdata = as.matrix(X_moderator))
 pf1_pred_m <- predict(pf1, newdata = as.matrix(X_moderator))
 
@@ -358,18 +378,18 @@ one_q1_m <- pf1_pred_m$predictions[, 2]
 one_q <- one_q0_m / one_q1_m
 one_q[one_q > 1] <- 1/one_q[one_q > 1]
 
-result <- CTTB(data = dat, seed = seed,
-               Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
-               regression.splitting = FALSE, cv_fold = 5,
-               aggBounds = 0,
-               cBounds = 1, X_moderator = X_moderator, 
-               LeeBounds = 0, direction = NULL,
-               cond.mono = 0)
+result <- CTB(data = dat, seed = seed,
+              Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
+              regression.splitting = FALSE, cv_fold = 5,
+              aggBounds = 0,
+              cBounds = 1, X_moderator = X_moderator, 
+              direction = NULL,
+              cond.mono = 0)
 
-tau_l_m_avg <- result[["tau_l_m_avg"]]
-tau_u_m_avg <- result[["tau_u_m_avg"]]
-se_tau_l_m_avg <- result[["se_tau_l_m_avg"]]
-se_tau_u_m_avg <- result[["se_tau_u_m_avg"]]
+tau_l_m_avg <- result[["tau_l_est_cond"]]
+tau_u_m_avg <- result[["tau_u_est_cond"]]
+se_tau_l_m_avg <- result[["se_tau_l_est_cond"]]
+se_tau_u_m_avg <- result[["se_tau_u_est_cond"]]
 
 ```
 
@@ -379,7 +399,6 @@ the conditional bounds.
 
 The results are plot as follows:
 ```{r santoro result plot, message=FALSE, warning=FALSE}
-
 pdata_m <- data.frame("X" = X_moderator[, 1], "tau_u_m_avg" = tau_u_m_avg,
                       "tau_l_m_avg" = tau_l_m_avg, "se_tau_u_m_avg" = se_tau_u_m_avg,
                       "se_tau_l_m_avg" = se_tau_l_m_avg, "one_q" = one_q)
