@@ -100,7 +100,7 @@ The quantile $y_{1-q}$ is similarly defined. Justifications for these bounds are
 One limitation of the basic trimming bounds is that they can be very wide in practice and are not informative at all about the LATE for the always-responders. In @samii2023generalizing, we generalize this method by combining it with machine learning techniques to incorporate information from the covariates. We first illustrate how to estimate these bounds conditional on any values of the covariates using the method of *generalized random forests* [@athey2019generalized], which yields bounds for the conditional LATE and may be of independent interest. Then, by integrating these conditional bounds over the covariates distribution of the always-responders, we obtain the "covariate-tightened trimming bounds." They are typically much narrower than the basic ones. Our algorithm uses both Neyman orthogonalization and cross-fitting, following the recommendations of @chernozhukov2018double, such that the estimator does not suffer from any efficiency loss.
 
 ##  Simulated data
-We now show how to use the main functions in the package with a simulated experiment (*simData*). The dataset includes $1,000$ units. The treatment is randomly assigned with a probability of $0.5$. For each unit, we have $10$ covariates, $X1$ to $X10$. All the covariates are uniformed distributed on $[0, 1]$. Among them, only one ($X1$) affects both the outcome and the response. In addition, there exists a variable ($U \sim unif[-2, 2]$) that is unobservable to researchers but also affects both the outcome and the response. We describe the DGP with more details in the [paper](https://papers.ssrn.com/abstract=3555463). 
+We now show how to use the main functions in the package with a simulated experiment (*dat_full*). The dataset includes $1,000$ units. The treatment is randomly assigned with a probability of $0.5$. For each unit, we have $10$ covariates, $X1$ to $X10$. All the covariates are uniformed distributed on $[0, 1]$. Among them, only one ($X1$) affects both the outcome and the response. In addition, there exists a variable ($U \sim unif[-2, 2]$) that is unobservable to researchers but also affects both the outcome and the response. We describe the DGP with more details in the [paper](https://papers.ssrn.com/abstract=3555463). 
 ```{r data, message = FALSE, warning = FALSE, fig.ext = 'png', out.width="60%", , out.height="60%", fig.align = 'center'}
 set.seed(1234)
 library(CTB)
@@ -108,62 +108,62 @@ library(grf)
 library(ggplot2)
 data(simData)
 
-N <- nrow(simData)
+N <- nrow(dat_full)
 
-yrange <- range(c(simData$Y0, simData$Y1))
-xrange <- range(simData$X2)
+yrange <- range(c(dat_full$Y0, dat_full$Y1))
+xrange <- range(dat_full$X2)
 
 par(mfrow = c(1, 1))
-plot(Y1 ~ X2, simData,
+plot(Y1 ~ X2, dat_full,
      pch=19,
      col="black",
      ylim=yrange, xlim=xrange,
      main="Potential outcomes",
      xlab=expression('X'[1]), ylab="Y", 
      cex.lab=1, cex.axis=1, cex = .4)
-points(Y0 ~ X2, simData,
+points(Y0 ~ X2, dat_full,
        pch=21,
        col="black",
        bg="white", 
        cex = .4)
 
-plot(subset(simData, D==1&S==1)$X2,
-     subset(simData, D==1&S==1)$Y,
+plot(subset(dat_full, D==1&S==1)$X2,
+     subset(dat_full, D==1&S==1)$Y,
      ylim=yrange, xlim=xrange,
      pch=19,
      col="black",
      main="Experimental outcomes \n (red means attrited)",
      xlab=expression('X'[1]), ylab="Y", 
      cex.lab=1, cex.axis=1, cex = .4)
-points(subset(simData, D==0&S==0)$X2,
-       subset(simData, D==0&S==0)$Y,
+points(subset(dat_full, D==0&S==0)$X2,
+       subset(dat_full, D==0&S==0)$Y,
        ylim=yrange, xlim=xrange,
        pch=19,
        col="red", 
        cex = .4)
-points(subset(simData, D==1&S==0)$X2,
-       subset(simData, D==1&S==0)$Y,
+points(subset(dat_full, D==1&S==0)$X2,
+       subset(dat_full, D==1&S==0)$Y,
        ylim=yrange, xlim=xrange,
        pch=19,
        col="red", 
        cex = .4)
-points(subset(simData, D==0&S==1)$X2,
-       subset(simData, D==0&S==1)$Y,
+points(subset(dat_full, D==0&S==1)$X2,
+       subset(dat_full, D==0&S==1)$Y,
        pch=21,
        col="black",
        bg="white", 
        cex = .4)
 
-plot(subset(simData, D==1&S==1)$X2,
-     subset(simData, D==1&S==1)$Y,
+plot(subset(dat_full, D==1&S==1)$X2,
+     subset(dat_full, D==1&S==1)$Y,
      ylim=yrange, xlim=xrange,
      pch=19,
      col="black",
      main="Observed outcomes",
      xlab=expression('X'[1]), ylab="Y", 
      cex.lab=1, cex.axis=1, cex = .4)
-points(subset(simData, D==0)$X2,
-       subset(simData, D==0)$Y,
+points(subset(dat_full, D==0)$X2,
+       subset(dat_full, D==0)$Y,
        pch=21,
        col="black",
        bg="white", 
@@ -173,10 +173,10 @@ points(subset(simData, D==0)$X2,
 Plots above show
 ```{r estimand, message = FALSE, warning = FALSE}
 # generate the data with missing outcome values
-dat <- simData
+dat <- dat_full
 dat[dat$S == 0, "Y"] <- NA
 
-cat("The ATE equals ", mean(simData$Y1 - simData$Y0), "\n")
+cat("The ATE equals ", mean(dat_full$Y1 - dat_full$Y0), "\n")
 cat("The ATE for always-responders equals ", mean(true_parameters$Ete_ar), "\n")
 cat("The difference-in-means estimator generates an estimate of ", mean(dat$Y[dat$D == 1 & dat$S == 1]) - mean(dat$Y[dat$D == 0 & dat$S == 1]), "\n")
 ```
