@@ -1,0 +1,12 @@
+Package: CTTB
+Type: Package
+Title: Estimate Aggregated and Conditional Trimming Bounds Using Information from Covariates
+Version: 0.1.0
+Author: Cyrus Samii <cds2083@nyu.edu>, Ye Wang <yewang@unc.edu>, Junlong Aaron Zhou <jlzhou@nyu.edu>
+Maintainer: Ye Wang <yewang@unc.edu>
+Description: This package implements the covariate-tightened trimming bounds (CTTB) method proposed by Samii, Wang, and Zhou (2025). CTTB generalizes the classic trimming bounds (TB) approach of Lee (2009) by leveraging the generalized random forest algorithm (Athey, Tibshirani, and Wager, 2019) to incorporate information from a potentially high-dimensional set of covariates. The method enables users to construct trimming bounds conditional on covariate values and aggregate these conditional bounds to obtain a tighter identified set. It is built upon the idea of double machine learning (Chernozhukov et al., 2018) and provides users with honest confidence intervals.
+License: MIT + file LICENSE
+Imports: grf (>= 0.12.3), ggplot2 (>= 2.1.0)
+Depends: R (>= 3.5.0)
+Packaged: 2023-06-23 01:36:32 UTC
+
