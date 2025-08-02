@@ -47,11 +47,12 @@ moderator_plot = 1, ...)
 }
 
 \examples{
-library(CTB)
+library(CTTB)
 data(simData)
-out <- CTB(data = dat, seed = 1234, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:(P+2))]),                       Pscore = "Ps", regression.splitting = FALSE, cv_fold = 5, aggBounds = TRUE,
-           cBounds = TRUE, X_moderator = X_moderator, direction = NULL, cond.mono = 0)
-print(out)
+
+result <- CTTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, LeeBounds = 1, cBounds = 0, X_moderator = NULL, cond.mono = FALSE)
+
+plot(result)
 }
 
 
