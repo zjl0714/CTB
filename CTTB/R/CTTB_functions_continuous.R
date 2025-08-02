@@ -451,17 +451,12 @@ condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
   return(result)
 }
 
-LBounds_cont <- function(dat_final, Y, X, S, D, W, Pscore,
-                         cond.mono = FALSE){
+LBounds_cont <- function(dat_final, seed = NULL, Y, X, S, D, W, Pscore,
+                         cond_mono = FALSE){
 
-  if (cond.mono){
-    if (is.null(seed)){
-      pf0 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 0, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 0, S])), sample.weights = dat_final[dat_final[, D] == 0, W])
-      pf1 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 1, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 1, S])), sample.weights = dat_final[dat_final[, D] == 1, W])
-    }else{
-      pf0 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 0, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 0, S])), sample.weights = dat_final[dat_final[, D] == 0, W], seed = seed)
-      pf1 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 1, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 1, S])), sample.weights = dat_final[dat_final[, D] == 1, W], seed = seed)
-    }
+  if (cond_mono){
+    pf0 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 0, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 0, S])), sample.weights = dat_final[dat_final[, D] == 0, W], seed = seed)
+    pf1 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 1, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 1, S])), sample.weights = dat_final[dat_final[, D] == 1, W], seed = seed)
 
     pf0_pred <- predict(pf0, newdata = (as.matrix(dat_final[, X])))
     pf1_pred <- predict(pf1, newdata = (as.matrix(dat_final[, X])))
@@ -475,90 +470,98 @@ LBounds_cont <- function(dat_final, Y, X, S, D, W, Pscore,
     dat_hurt <- dat_final[directions == 0, ]
 
     # hurt lee bounds
-    all_ys_hurt <- unlist(unique(dat_hurt[dat_hurt[, D] == 0 & dat_hurt[, S] == 1, Y]))
-    all_ys_hurt <- sort(all_ys_hurt)
+    if (nrow(dat_hurt) > 0){
+      all_ys_hurt <- unlist(unique(dat_hurt[dat_hurt[, D] == 0 & dat_hurt[, S] == 1, Y]))
+      all_ys_hurt <- sort(all_ys_hurt)
 
-    theta1_lee <- sum(dat_hurt[, D] * dat_hurt[, S] * dat_hurt[, W] * dat_hurt[, Y], na.rm = 1) / sum(dat_hurt[, D] * dat_hurt[, S] * dat_hurt[, W], na.rm = 1)
-    var_theta1_lee <- sum((dat_hurt[, D]) * dat_hurt[, S] * dat_hurt[, W] * dat_hurt[, Y]^2, na.rm = 1) / sum(dat_hurt[, D] * dat_hurt[, S] * dat_hurt[, W], na.rm = 1) - theta1_lee^2
+      theta1_lee <- sum(dat_hurt[, D] * dat_hurt[, S] * dat_hurt[, W] * dat_hurt[, Y], na.rm = 1) / sum(dat_hurt[, D] * dat_hurt[, S] * dat_hurt[, W], na.rm = 1)
+      var_theta1_lee <- sum((dat_hurt[, D]) * dat_hurt[, S] * dat_hurt[, W] * dat_hurt[, Y]^2, na.rm = 1) / sum(dat_hurt[, D] * dat_hurt[, S] * dat_hurt[, W], na.rm = 1) - theta1_lee^2
 
-    q0_lee_hurt <- sum(dat_hurt[, S] * (1-dat_hurt[, D]) * dat_hurt[, W]) / sum((1-dat_hurt[, D]) * dat_hurt[, W])
-    q1_lee_hurt <- sum(dat_hurt[, S] * dat_hurt[, D] * dat_hurt[, W]) / sum(dat_hurt[, D] * dat_hurt[, W])
-    q_lee_hurt <- q1_lee_hurt / q0_lee_hurt
+      q0_lee_hurt <- sum(dat_hurt[, S] * (1-dat_hurt[, D]) * dat_hurt[, W]) / sum((1-dat_hurt[, D]) * dat_hurt[, W])
+      q1_lee_hurt <- sum(dat_hurt[, S] * dat_hurt[, D] * dat_hurt[, W]) / sum(dat_hurt[, D] * dat_hurt[, W])
+      q_lee_hurt <- q1_lee_hurt / q0_lee_hurt
 
-    ED_hurt <- pscore_hurt <- sum(dat_hurt[, D] * dat_hurt[, W]) / sum(dat_hurt[, W])
+      ED_hurt <- pscore_hurt <- sum(dat_hurt[, D] * dat_hurt[, W]) / sum(dat_hurt[, W])
 
-    tilde.F.hurt <- function(y){
-      sum(dat_hurt[, S]*(1-dat_hurt[, D])*dat_hurt[, W]*as.numeric(dat_hurt[, Y] < y), na.rm = 1)/sum(dat_hurt[, S]*dat_hurt[, W]*(1-dat_hurt[, D]))
+      tilde.F.hurt <- function(y){
+        sum(dat_hurt[, S]*(1-dat_hurt[, D])*dat_hurt[, W]*as.numeric(dat_hurt[, Y] < y), na.rm = 1)/sum(dat_hurt[, S]*dat_hurt[, W]*(1-dat_hurt[, D]))
+      }
+
+      tilde.F.vals.hurt <- rep(0, length(all_ys_hurt))
+      for(i in 1:length(all_ys_hurt)){
+        if(i == 1){tilde.F.vals.hurt[i] <- max(0, tilde.F.hurt(all_ys_hurt[i]))}
+        if(i > 1){tilde.F.vals.hurt[i] <- max(tilde.F.vals.hurt[i-1], tilde.F.hurt(all_ys_hurt[i]))}
+        if(i == length(all_ys_hurt)){tilde.F.vals.hurt[i] <- max(1, tilde.F.hurt(all_ys_hurt[i]))}
+      }
+
+      yq_l_lee_hurt <- max(all_ys_hurt[tilde.F.vals.hurt <= q_lee_hurt])
+      yq_u_lee_hurt <- min(all_ys_hurt[tilde.F.vals.hurt >= 1-q_lee_hurt])
+
+      theta0_l_lee <- sum((1-dat_hurt[, D])*dat_hurt[, W]*dat_hurt[, S]*as.numeric(dat_hurt[, Y] <= yq_l_lee_hurt)*as.numeric(dat_hurt[, Y]), na.rm = 1) / sum((1-dat_hurt[, D])*dat_hurt[, W]*dat_hurt[, S]*as.numeric(dat_hurt[, Y] <= yq_l_lee_hurt), na.rm = 1)
+      theta0_u_lee <- sum((1-dat_hurt[, D])*dat_hurt[, W]*dat_hurt[, S]*as.numeric(dat_hurt[, Y] >= yq_u_lee_hurt)*as.numeric(dat_hurt[, Y]), na.rm = 1) / sum((1-dat_hurt[, D])*dat_hurt[, W]*dat_hurt[, S]*as.numeric(dat_hurt[, Y] >= yq_u_lee_hurt), na.rm = 1)
+
+      tau_u_lee_hurt <- theta1_lee - theta0_l_lee
+      tau_l_lee_hurt <- theta1_lee - theta0_u_lee
+
+      V_q_hurt <- q_lee_hurt^2 * (((1 - q1_lee_hurt) / (ED_hurt * q1_lee_hurt)) + (1 - q0_lee_hurt) / ((1-ED_hurt) * q0_lee_hurt))
+      ESD_hurt <- sum(dat_hurt[, D] * dat_hurt[, S] * dat_hurt[, W]) / sum(dat_hurt[, W])
+
+      var_tau_u_lee_hurt <- (sum((1-dat_hurt[, D])*dat_hurt[, S]*dat_hurt[, W]*as.numeric(dat_hurt[, Y] <= yq_l_lee_hurt)*as.numeric(dat_hurt[, Y]^2), na.rm = 1) / sum((1-dat_hurt[, D])*dat_hurt[, S]*dat_hurt[, W]*as.numeric(dat_hurt[, Y] <= yq_l_lee_hurt), na.rm = 1) - theta0_l_lee^2) / (ESD_hurt * q_lee_hurt) +
+        (1 - q_lee_hurt) * (yq_l_lee_hurt - theta0_l_lee)^2 / (ESD_hurt * q_lee_hurt) + ((yq_l_lee_hurt - theta0_l_lee) / q_lee_hurt)^2 * V_q_hurt + var_theta1_lee
+      se_tau_u_lee_hurt <- sqrt(var_tau_u_lee_hurt / nrow(dat_hurt))
+
+      var_tau_l_lee_hurt <- (sum((1-dat_hurt[, D])*dat_hurt[, S]*dat_hurt[, W]*as.numeric(dat_hurt[, Y] >= yq_u_lee_hurt)*as.numeric(dat_hurt[, Y]^2), na.rm = 1) / sum((1-dat_hurt[, D])*dat_hurt[, S]*dat_hurt[, W]*as.numeric(dat_hurt[, Y] >= yq_u_lee_hurt), na.rm = 1) - theta0_u_lee^2) / (ESD_hurt * q_lee_hurt) +
+        (1 - q_lee_hurt) * (yq_u_lee_hurt - theta0_u_lee)^2 / (ESD_hurt * q_lee_hurt) + ((yq_u_lee_hurt - theta0_u_lee) / q_lee_hurt)^2 * V_q_hurt + var_theta1_lee
+      se_tau_l_lee_hurt <- sqrt(var_tau_l_lee_hurt / nrow(dat_hurt))
+    }else{
+      tau_u_lee_hurt <- tau_l_lee_hurt <- se_tau_u_lee_hurt <- se_tau_l_lee_hurt <- 0
     }
-
-    tilde.F.vals.hurt <- rep(0, length(all_ys_hurt))
-    for(i in 1:length(all_ys_hurt)){
-      if(i == 1){tilde.F.vals.hurt[i] <- max(0, tilde.F.hurt(all_ys_hurt[i]))}
-      if(i > 1){tilde.F.vals.hurt[i] <- max(tilde.F.vals.hurt[i-1], tilde.F.hurt(all_ys_hurt[i]))}
-      if(i == length(all_ys_hurt)){tilde.F.vals.hurt[i] <- max(1, tilde.F.hurt(all_ys_hurt[i]))}
-    }
-
-    yq_l_lee_hurt <- max(all_ys_hurt[tilde.F.vals.hurt <= q_lee_hurt])
-    yq_u_lee_hurt <- min(all_ys_hurt[tilde.F.vals.hurt >= 1-q_lee_hurt])
-
-    theta0_l_lee <- sum((1-dat_hurt[, D])*dat_hurt[, W]*dat_hurt[, S]*as.numeric(dat_hurt[, Y] <= yq_l_lee_hurt)*as.numeric(dat_hurt[, Y]), na.rm = 1) / sum((1-dat_hurt[, D])*dat_hurt[, W]*dat_hurt[, S]*as.numeric(dat_hurt[, Y] <= yq_l_lee_hurt), na.rm = 1)
-    theta0_u_lee <- sum((1-dat_hurt[, D])*dat_hurt[, W]*dat_hurt[, S]*as.numeric(dat_hurt[, Y] >= yq_u_lee_hurt)*as.numeric(dat_hurt[, Y]), na.rm = 1) / sum((1-dat_hurt[, D])*dat_hurt[, W]*dat_hurt[, S]*as.numeric(dat_hurt[, Y] >= yq_u_lee_hurt), na.rm = 1)
-
-    tau_u_lee_hurt <- theta1_lee - theta0_l_lee
-    tau_l_lee_hurt <- theta1_lee - theta0_u_lee
-
-    V_q_hurt <- q_lee_hurt^2 * (((1 - q1_lee_hurt) / (ED_hurt * q1_lee_hurt)) + (1 - q0_lee_hurt) / ((1-ED_hurt) * q0_lee_hurt))
-    ESD_hurt <- sum(dat_hurt[, D] * dat_hurt[, S] * dat_hurt[, W]) / sum(dat_hurt[, W])
-
-    var_tau_u_lee_hurt <- (sum((1-dat_hurt[, D])*dat_hurt[, S]*dat_hurt[, W]*as.numeric(dat_hurt[, Y] <= yq_l_lee_hurt)*as.numeric(dat_hurt[, Y]^2), na.rm = 1) / sum((1-dat_hurt[, D])*dat_hurt[, S]*dat_hurt[, W]*as.numeric(dat_hurt[, Y] <= yq_l_lee_hurt), na.rm = 1) - theta0_l_lee^2) / (ESD_hurt * q_lee_hurt) +
-      (1 - q_lee_hurt) * (yq_l_lee_hurt - theta0_l_lee)^2 / (ESD_hurt * q_lee_hurt) + ((yq_l_lee_hurt - theta0_l_lee) / q_lee_hurt)^2 * V_q_hurt + var_theta1_lee
-    se_tau_u_lee_hurt <- sqrt(var_tau_u_lee_hurt / nrow(dat_hurt))
-
-    var_tau_l_lee_hurt <- (sum((1-dat_hurt[, D])*dat_hurt[, S]*dat_hurt[, W]*as.numeric(dat_hurt[, Y] >= yq_u_lee_hurt)*as.numeric(dat_hurt[, Y]^2), na.rm = 1) / sum((1-dat_hurt[, D])*dat_hurt[, S]*dat_hurt[, W]*as.numeric(dat_hurt[, Y] >= yq_u_lee_hurt), na.rm = 1) - theta0_u_lee^2) / (ESD_hurt * q_lee_hurt) +
-      (1 - q_lee_hurt) * (yq_u_lee_hurt - theta0_u_lee)^2 / (ESD_hurt * q_lee_hurt) + ((yq_u_lee_hurt - theta0_u_lee) / q_lee_hurt)^2 * V_q_hurt + var_theta1_lee
-    se_tau_l_lee_hurt <- sqrt(var_tau_l_lee_hurt / nrow(dat_hurt))
 
     # help lee bounds
-    all_ys_help <- unique(dat_help[dat_help[, D] == 1 & dat_help[, S] == 1, Y])
-    all_ys_help <- sort(all_ys_help)
-    theta0_lee <- sum((1-dat_help[, D]) * dat_help[, S] * dat_help[, W] * dat_help[, Y], na.rm = 1) / sum((1-dat_help[, D]) * dat_help[, S] * dat_help[, W], na.rm = 1)
-    var_theta0_lee <- sum((1-dat_help[, D]) * dat_help[, S] * dat_help[, W] * dat_help[, Y]^2, na.rm = 1) / sum((1-dat_help[, D]) * dat_help[, S] * dat_help[, W], na.rm = 1) - theta0_lee^2
-    q0_lee_help <- sum(dat_help[, S] * (1-dat_help[, D]) * dat_help[, W]) / sum((1-dat_help[, D]) * dat_help[, W])
-    q1_lee_help <- sum(dat_help[, S] * dat_help[, D] * dat_help[, W]) / sum(dat_help[, D] * dat_help[, W])
-    q_lee_help <- q0_lee_help / q1_lee_help
+    if (nrow(dat_help) > 0){
+      all_ys_help <- unique(dat_help[dat_help[, D] == 1 & dat_help[, S] == 1, Y])
+      all_ys_help <- sort(all_ys_help)
+      theta0_lee <- sum((1-dat_help[, D]) * dat_help[, S] * dat_help[, W] * dat_help[, Y], na.rm = 1) / sum((1-dat_help[, D]) * dat_help[, S] * dat_help[, W], na.rm = 1)
+      var_theta0_lee <- sum((1-dat_help[, D]) * dat_help[, S] * dat_help[, W] * dat_help[, Y]^2, na.rm = 1) / sum((1-dat_help[, D]) * dat_help[, S] * dat_help[, W], na.rm = 1) - theta0_lee^2
+      q0_lee_help <- sum(dat_help[, S] * (1-dat_help[, D]) * dat_help[, W]) / sum((1-dat_help[, D]) * dat_help[, W])
+      q1_lee_help <- sum(dat_help[, S] * dat_help[, D] * dat_help[, W]) / sum(dat_help[, D] * dat_help[, W])
+      q_lee_help <- q0_lee_help / q1_lee_help
 
-    ED_help <- pscore_help <- sum(dat_help[, D] * dat_help[, W]) / sum(dat_help[, W])
+      ED_help <- pscore_help <- sum(dat_help[, D] * dat_help[, W]) / sum(dat_help[, W])
 
-    tilde.F.help <- function(y){
-      sum(dat_help[, S]*dat_help[, D]*dat_help[, W]*as.numeric(dat_help[, Y] < y), na.rm = 1)/sum(dat_help[, S]*dat_help[, D]*dat_help[, W])
+      tilde.F.help <- function(y){
+        sum(dat_help[, S]*dat_help[, D]*dat_help[, W]*as.numeric(dat_help[, Y] < y), na.rm = 1)/sum(dat_help[, S]*dat_help[, D]*dat_help[, W])
+      }
+
+      tilde.F.vals.help <- rep(0, length(all_ys_help))
+      for(i in 1:length(all_ys_help)){
+        if(i == 1){tilde.F.vals.help[i] <- max(0, tilde.F.help(all_ys_help[i]))}
+        if(i > 1){tilde.F.vals.help[i] <- max(tilde.F.vals.help[i-1], tilde.F.help(all_ys_help[i]))}
+        if(i == length(all_ys_help)){tilde.F.vals.help[i] <- max(1, tilde.F.help(all_ys_help[i]))}
+      }
+
+      yq_l_lee_help <- max(all_ys_help[tilde.F.vals.help <= q_lee_help])
+      yq_u_lee_help <- min(all_ys_help[tilde.F.vals.help >= 1-q_lee_help])
+
+      theta1_l_lee <- sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] <= yq_l_lee_help)*as.numeric(dat_help[, Y]), na.rm = 1) / sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] <= yq_l_lee_help), na.rm = 1)
+      theta1_u_lee <- sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] >= yq_u_lee_help)*as.numeric(dat_help[, Y]), na.rm = 1) / sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] >= yq_u_lee_help), na.rm = 1)
+
+      tau_u_lee_help <- theta1_u_lee - theta0_lee
+      tau_l_lee_help <- theta1_l_lee - theta0_lee
+
+      V_q_help <- q_lee_help^2 * (((1 - q0_lee_help/q_lee_help) / (ED_help * q0_lee_help/q_lee_help)) + (1 - q0_lee_help) / ((1-ED_help) * q0_lee_help))
+      ESD_help <- sum(dat_help[, D] * dat_help[, S] * dat_help[, W]) / sum(dat_help[, W])
+
+      var_tau_l_lee_help <- (sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] <= yq_l_lee_help)*as.numeric(dat_help[, Y]^2), na.rm = 1) / sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] <= yq_l_lee_help), na.rm = 1) - theta1_l_lee^2) / (ESD_help * q_lee_help) +
+        (1 - q_lee_help) * (yq_l_lee_help - theta1_l_lee)^2 / (ESD_help * q_lee_help) + ((yq_l_lee_help - theta1_l_lee) / q_lee_help)^2 * V_q_help + var_theta0_lee
+      se_tau_l_lee_help <- sqrt(var_tau_l_lee_help / nrow(dat_help))
+
+      var_tau_u_lee_help <- (sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] >= yq_u_lee_help)*as.numeric(dat_help[, Y]^2), na.rm = 1) / sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] >= yq_u_lee_help), na.rm = 1) - theta1_u_lee^2) / (ESD_help * q_lee_help) +
+        (1 - q_lee_help) * (yq_u_lee_help - theta1_u_lee)^2 / (ESD_help * q_lee_help) + ((yq_u_lee_help - theta1_u_lee) / q_lee_help)^2 * V_q_help + var_theta0_lee
+      se_tau_u_lee_help <- sqrt(var_tau_u_lee_help / nrow(dat_help))
+    }else{
+      tau_u_lee_help <- tau_l_lee_help <- se_tau_u_lee_help <- se_tau_l_lee_help <- 0
     }
-
-    tilde.F.vals.help <- rep(0, length(all_ys_help))
-    for(i in 1:length(all_ys_help)){
-      if(i == 1){tilde.F.vals.help[i] <- max(0, tilde.F.help(all_ys_help[i]))}
-      if(i > 1){tilde.F.vals.help[i] <- max(tilde.F.vals.help[i-1], tilde.F.help(all_ys_help[i]))}
-      if(i == length(all_ys_help)){tilde.F.vals.help[i] <- max(1, tilde.F.help(all_ys_help[i]))}
-    }
-
-    yq_l_lee_help <- max(all_ys_help[tilde.F.vals.help <= q_lee_help])
-    yq_u_lee_help <- min(all_ys_help[tilde.F.vals.help >= 1-q_lee_help])
-
-    theta1_l_lee <- sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] <= yq_l_lee_help)*as.numeric(dat_help[, Y]), na.rm = 1) / sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] <= yq_l_lee_help), na.rm = 1)
-    theta1_u_lee <- sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] >= yq_u_lee_help)*as.numeric(dat_help[, Y]), na.rm = 1) / sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] >= yq_u_lee_help), na.rm = 1)
-
-    tau_u_lee_help <- theta1_u_lee - theta0_lee
-    tau_l_lee_help <- theta1_l_lee - theta0_lee
-
-    V_q_help <- q_lee_help^2 * (((1 - q0_lee_help/q_lee_help) / (ED_help * q0_lee_help/q_lee_help)) + (1 - q0_lee_help) / ((1-ED_help) * q0_lee_help))
-    ESD_help <- sum(dat_help[, D] * dat_help[, S] * dat_help[, W]) / sum(dat_help[, W])
-
-    var_tau_l_lee_help <- (sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] <= yq_l_lee_help)*as.numeric(dat_help[, Y]^2), na.rm = 1) / sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] <= yq_l_lee_help), na.rm = 1) - theta1_l_lee^2) / (ESD_help * q_lee_help) +
-      (1 - q_lee_help) * (yq_l_lee_help - theta1_l_lee)^2 / (ESD_help * q_lee_help) + ((yq_l_lee_help - theta1_l_lee) / q_lee_help)^2 * V_q_help + var_theta0_lee
-    se_tau_l_lee_help <- sqrt(var_tau_l_lee_help / nrow(dat_help))
-
-    var_tau_u_lee_help <- (sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] >= yq_u_lee_help)*as.numeric(dat_help[, Y]^2), na.rm = 1) / sum(dat_help[, D]*dat_help[, S]*dat_help[, W]*as.numeric(dat_help[, Y] >= yq_u_lee_help), na.rm = 1) - theta1_u_lee^2) / (ESD_help * q_lee_help) +
-      (1 - q_lee_help) * (yq_u_lee_help - theta1_u_lee)^2 / (ESD_help * q_lee_help) + ((yq_u_lee_help - theta1_u_lee) / q_lee_help)^2 * V_q_help + var_theta0_lee
-    se_tau_u_lee_help <- sqrt(var_tau_u_lee_help / nrow(dat_help))
 
     pos_ratio <- mean(directions)
 

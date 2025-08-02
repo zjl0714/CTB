@@ -176,17 +176,12 @@ LBounds_binary_oneshot <- function(dat_bo, Y, X, S, D, W, direction){
 }
 
 
-LBounds_binary <- function(dat_final, Y, X, S, D, W, Pscore,
-                           cond.mono = FALSE, Nboots = 1000){
+LBounds_binary <- function(dat_final, seed = NULL, Y, X, S, D, W, Pscore,
+                           cond_mono = FALSE, Nboots = 1000){
 
-  if (cond.mono){
-    if (is.null(seed)){
-      pf0 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 0, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 0, S])), sample.weights = dat_final[dat_final[, D] == 0, W])
-      pf1 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 1, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 1, S])), sample.weights = dat_final[dat_final[, D] == 1, W])
-    }else{
-      pf0 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 0, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 0, S])), sample.weights = dat_final[dat_final[, D] == 0, W], seed = seed)
-      pf1 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 1, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 1, S])), sample.weights = dat_final[dat_final[, D] == 1, W], seed = seed)
-    }
+  if (cond_mono){
+    pf0 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 0, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 0, S])), sample.weights = dat_final[dat_final[, D] == 0, W], seed = seed)
+    pf1 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 1, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 1, S])), sample.weights = dat_final[dat_final[, D] == 1, W], seed = seed)
 
     pf0_pred <- predict(pf0, newdata = (as.matrix(dat_final[, X])))
     pf1_pred <- predict(pf1, newdata = (as.matrix(dat_final[, X])))
@@ -203,40 +198,49 @@ LBounds_binary <- function(dat_final, Y, X, S, D, W, Pscore,
     ndat_hurt <- nrow(dat_hurt)
 
     # hurt lee bounds
-    ests_lee_hurt <- LBounds_binary_oneshot(dat_hurt, Y, X, S, D, W, direction = 0)
+    if (ndat_hurt > 0){
+      ests_lee_hurt <- LBounds_binary_oneshot(dat_hurt, Y, X, S, D, W, direction = 0)
 
-    tau_u_lee_hurt <- ests_lee_hurt[2]
-    tau_l_lee_hurt <- ests_lee_hurt[1]
+      tau_u_lee_hurt <- ests_lee_hurt[2]
+      tau_l_lee_hurt <- ests_lee_hurt[1]
 
-    ests_lee_boot_hurt <- matrix(NA, Nboots, 2)
-    for (b in 1:Nboots){
-      dat_hurt_boot <- dat_hurt[sample(ndat_hurt, ndat_hurt, replace = 1), ]
-      ests_lee_boot_hurt[b, ] <- LBounds_binary_oneshot(dat_hurt_boot, Y, X, S, D, W, direction = 0)
-      if (b %% 100 == 0){
-        cat(b, "\n")
+      ests_lee_boot_hurt <- matrix(NA, Nboots, 2)
+      for (b in 1:Nboots){
+        dat_hurt_boot <- dat_hurt[sample(ndat_hurt, ndat_hurt, replace = 1), ]
+        ests_lee_boot_hurt[b, ] <- LBounds_binary_oneshot(dat_hurt_boot, Y, X, S, D, W, direction = 0)
+        if (b %% 100 == 0){
+          cat(b, "\n")
+        }
       }
+
+      se_tau_l_lee_hurt <- sqrt(var(ests_lee_boot_hurt[, 1]))
+      se_tau_u_lee_hurt <- sqrt(var(ests_lee_boot_hurt[, 2]))
+    }else{
+      tau_u_lee_hurt <- tau_l_lee_hurt <- se_tau_u_lee_hurt <- se_tau_l_lee_hurt <- 0
     }
 
-    se_tau_l_lee_hurt <- sqrt(var(ests_lee_boot_hurt[, 1]))
-    se_tau_u_lee_hurt <- sqrt(var(ests_lee_boot_hurt[, 2]))
 
     # help lee bounds
-    ests_lee_help <- LBounds_binary_oneshot(dat_help, Y, X, S, D, W, direction = 1)
+    if (ndat_help > 0){
+      ests_lee_help <- LBounds_binary_oneshot(dat_help, Y, X, S, D, W, direction = 1)
 
-    tau_u_lee_help <- ests_lee_help[2]
-    tau_l_lee_help <- ests_lee_help[1]
+      tau_u_lee_help <- ests_lee_help[2]
+      tau_l_lee_help <- ests_lee_help[1]
 
-    ests_lee_boot_help <- matrix(NA, Nboots, 2)
-    for (b in 1:Nboots){
-      dat_help_boot <- dat_help[sample(ndat_help, ndat_help, replace = 1), ]
-      ests_lee_boot_help[b, ] <- LBounds_binary_oneshot(dat_help_boot, Y, X, S, D, W, direction = 1)
-      if (b %% 100 == 0){
-        cat(b, "\n")
+      ests_lee_boot_help <- matrix(NA, Nboots, 2)
+      for (b in 1:Nboots){
+        dat_help_boot <- dat_help[sample(ndat_help, ndat_help, replace = 1), ]
+        ests_lee_boot_help[b, ] <- LBounds_binary_oneshot(dat_help_boot, Y, X, S, D, W, direction = 1)
+        if (b %% 100 == 0){
+          cat(b, "\n")
+        }
       }
-    }
 
-    se_tau_l_lee_help <- sqrt(var(ests_lee_boot_help[, 1]))
-    se_tau_u_lee_help <- sqrt(var(ests_lee_boot_help[, 2]))
+      se_tau_l_lee_help <- sqrt(var(ests_lee_boot_help[, 1]))
+      se_tau_u_lee_help <- sqrt(var(ests_lee_boot_help[, 2]))
+    }else{
+      tau_u_lee_help <- tau_l_lee_help <- se_tau_u_lee_help <- se_tau_l_lee_help <- 0
+    }
 
     pos_ratio <- mean(directions)
 

@@ -40,10 +40,10 @@ knitr::opts_chunk$set(
 )
 ```  
 
-In this tutorial, we demonstrate how to use the *CTTB* package in *R* for implementing the method of covariate-tightened trimming bounds proposed by @samii2023generalizing. This method enables empirical researchers to construct bounds for the local average treatment effect on a sub-population known as the always-responders in experiments or quasi-experiments, when faced with missing outcome or sample selection driven by potentially unobservable factors. 
+In this tutorial, we demonstrate how to use the *CTTB* package in *R* for implementing the method of covariate-tightened trimming bounds proposed by @samii2023generalizing. This method enables empirical researchers to construct sharp bounds for the local average treatment effect (LATE) on a sub-population known as the always-responders in experiments or quasi-experiments, when faced with missing outcome or sample selection driven by potentially unobservable factors. 
 
 ## Problems with endogenous sample selection
-Consider an experiment with $N$ units. For each unit $i$, we denote the outcome as $Y_i$, the binary treatment status as $D_i$, the binary response indicator as $S_i$, and $P$ pre-treatment covariates as $\mathbf{X}_i = (X_{1i}, X_{2i}, \dots, X_{Pi})$. The outcome $Y_i$ is observed only when $S_i = 1$. The variable $S_i$ reflects whether the unit opts to participate in the experiment or selects into reporting the outcome, and it may be influenced by the treatment status. Under the potential outcome framework, we have
+Consider an experiment with $N$ units. For each unit $i$, we denote the outcome as $Y_i$, the binary treatment status as $D_i$, the binary response indicator as $S_i$, and $P$ pre-treatment covariates as $\mathbf{X}_i = (X_{1i}, X_{2i}, \dots, X_{Pi})$. The outcome $Y_i$ is observed only when $S_i = 1$. The variable $S_i$ reflects whether the unit opts to participate in the experiment or reports their outcome, and its value may be influenced by treatment status. Under the potential outcome framework, we have
 $$
 Y_i = \begin{cases}
 Y_i(1), D_i = 1 \\
@@ -53,14 +53,14 @@ S_i(1), D_i = 1 \\
 S_i(0), D_i = 0.
 \end{cases}
 $$
-For simplicity, we assume that the treatment is randomly assigned with a positive and known probability, hence
+For simplicity, we assume that the treatment is randomly assigned with a positive and known probability, so that $D_i$ is exogenous:
 $$
 \begin{aligned}
 & (Y_i(1), Y_i(0), S_i(1), S_i(0)) \perp D_i, \\
 & \varepsilon < P(D_i = 1) < 1 - \varepsilon, \text{ with } \varepsilon > 0.
 \end{aligned}
 $$
-Note that we can only estimate the average outcome in either the treatment group or the control group conditional on the event $S_i = 1$. Since $S_i$ is not randomly assigned, the difference-in-means estimator may no longer be unbiased. As depicted in the Directed Acyclic Graph (DAG) below, there may exist an unobservable variable $U_i$ influencing both $S_i$ and $Y_i$. Then, $S_i$ becomes an endogenous variable and we have the problem of endogenous sample selection. The difference in the average outcome across the two groups now captures the influence of both $U_i$ and $D_i$, hence does not estimate the average treatment effect accurately.
+Note that we can estimate the average outcome in either the treatment group or the control group only by conditioning on the event $S_i = 1$. Since $S_i$ is not randomly assigned, the difference-in-means estimator may no longer be unbiased. As depicted in the Directed Acyclic Graph (DAG) below, there may exist an unobservable variable $U_i$ influencing both $S_i$ and $Y_i$. In this case, the difference in the average outcome across the treatment and control groups captures the influence of both $U_i$ and $D_i$, and thus does not estimate the average treatment effect accurately. Since $S_i$ is an endogenous variable in the relationship between $Y_i$ and $(D_i, S_i)$, we refer to this issue as "endogenous sample selection." 
 ```{tikz, echo=FALSE, fig.ext = 'png', out.width="60%", , out.height="60%", fig.align = 'center'}
 \begin{tikzpicture}
 [scale=0.7,dot/.style={fill,draw,circle,minimum width=1pt},
@@ -73,10 +73,10 @@ arrow2 style/.style={->,line width=2pt, shorten <=2pt,shorten >=2pt },]
 \end{tikzpicture}
 ```
 
-Conventionally, to mitigate the bias arising from conditioning on $S_i$, researchers often turn to sample selection models [@heckman1979sample] or various imputation methods [@honaker2011amelia; @li2013weighting; @blackwell2017unified; @liu2021latent]. However, these methods generally assume that researchers have access to all variables influencing the selection process, a condition that is often unrealistic and contradicts the core rationale of conducting an experiment. 
+This issue is common in social science and can also be interpreted through the lenses of post-treatment bias [@montgomery2018conditioning] or "phantom counterfactual" [@slough2022phantom]. Conventionally, to mitigate the bias arising from conditioning on $S_i$, researchers often turn to sample selection models [@heckman1979sample] or various imputation methods [@honaker2011amelia; @li2013weighting; @blackwell2017unified; @liu2021latent]. However, these methods generally assume that researchers have access to all variables influencing the selection process, a condition that is often unrealistic and contradicts the core rationale of conducting an experiment. 
 
 ## Introduction of the method
-An alternative approach, which does not rely on such comprehensive knowledge, was proposed by @lee2009training. This method involves bounding the average treatment effect for a specific subgroup known as the always-responders—units whose response indicator remains at $1$ regardless of whether they are under treatment or control conditions. This quantity is formally defined as
+An alternative approach, which does not rely on such comprehensive knowledge, was proposed by @lee2009training. This method involves bounding the average treatment effect for a specific subgroup known as the always-responders---units whose response indicator remains at $1$ regardless of whether they are under treatment or control conditions. This quantity is formally defined as
 $$
 \tau(1, 1) = E[\tau_i | S_i(0) = S_i(1) = 1].
 $$
@@ -94,13 +94,14 @@ $$
 & \tau^U_{TB}(1, 1) = E[Y_{i} | D_i = 1, S_i = 1, Y_i \geq y_{1-q}] - E[Y_{i} | D_i = 0, S_i = 1].
 \end{aligned}
 $$
-Here $y_{q}$ is the $q$th-quantile of the observed outcome's conditional distribution in the treatment group. It satisfies the condition $\int_{-\infty}^{y_{q}} dF_{Y|D=1, S=1}(y) = q$, with $F_{Y|D=1, S=1}(\cdot)$ being the distribution function for observed treatment group outcomes.
-The quantile $y_{1-q}$ is similarly defined. Justifications for these bounds are provided in Section 3 of the paper.
+Here $y_{q}$ is the $q$th-quantile of the observed outcome's conditional distribution in the treatment group. It satisfies the condition $\int_{-\infty}^{y_{q}} dF_{Y|D=1, S=1}(y) = q$, with $F_{Y|D=1, S=1}(\cdot)$ being the distribution function for observed treatment group outcomes. The quantile $y_{1-q}$ is similarly defined. This approach is known in the literature as trimming bounds (TB). Theoretical justifications for trimming bounds can be found in Section 3 of @samii2023generalizing.
 
-One limitation of the basic trimming bounds is that they can be very wide in practice and are not informative at all about the LATE for the always-responders. In @samii2023generalizing, we generalize this method by combining it with machine learning techniques to incorporate information from the covariates. We first illustrate how to estimate these bounds conditional on any values of the covariates using the method of *generalized random forests* [@athey2019generalized], which yields bounds for the conditional LATE and may be of independent interest. Then, by integrating these conditional bounds over the covariates distribution of the always-responders, we obtain the "covariate-tightened trimming bounds." They are typically much narrower than the basic ones. Our algorithm uses both Neyman orthogonalization and cross-fitting, following the recommendations of @chernozhukov2018double, such that the estimator does not suffer from any efficiency loss.
+One limitation of the basic trimming bounds is that they can be quite wide in practice and may provide little useful information about the LATE for the always-responders. @samii2023generalizing extend this method by combining it with a machine learning algorithm, *generalized random forests* or *grf* [@athey2019generalized], to incorporate information from a potentially high-dimensional set of covariates. Using machine learning, researchers can estimate parameters required by the trimming bounds, such as $q$, $y_{q}$, and $y_{1-q}$, for any covariate profile and derive conditional trimming bounds. Then, by integrating these conditional bounds over the covariates distribution of the always-responders, one obtains the "covariate-tightened trimming bounds" (CTTB), which are typically much narrower than the basic trimming bounds. Moreover, the direction of monotonic selection is allowed to vary across covariate profiles. This relaxed assumption---termed conditionally monotonic selection in @semenova2020better---is more realistic in many applications.
+
+The algorithm implemented in the *CTTB* package uses both Neyman orthogonalization and cross-fitting, following the recommendations of @chernozhukov2018double, such that the estimator does not suffer from any efficiency loss and is equipped with honest confidence intervals. The package also offers the option to relax the assumption of monotonic selection for the basic trimming bounds.\footnote{When the assumption of conditionally monotonic selection is imposed, the sample is divided into two subsets based on the direction of monotonic selection. Trimming bounds are then estimated separately within each subset and aggregated to form the final bounds.} Additionally, users can compute confidence intervals for the treatment effect itself, rather than for the bounds, using the method proposed by @imbens2004confidence.
 
 ##  Simulated data
-We now show how to use the main functions in the package with a simulated experiment (*dat_full*). The dataset includes $1,000$ units. The treatment is randomly assigned with a probability of $0.5$. For each unit, we have $10$ covariates, $X1$ to $X10$. All the covariates are uniformed distributed on $[0, 1]$. Among them, only one ($X1$) affects both the outcome and the response. In addition, there exists a variable ($U \sim unif[-2, 2]$) that is unobservable to researchers but also affects both the outcome and the response. We describe the DGP with more details in the [paper](https://papers.ssrn.com/abstract=3555463). 
+We now show how to use the main functions in the package with a simulated experiment (*dat_full*). The dataset includes $1,000$ units. The treatment is randomly assigned with a probability of $0.5$ for all units. For each unit, we have $10$ covariates, $X1$ to $X10$. All the covariates are uniformly distributed on $[0, 1]$. Among them, only one ($X1$) affects both the outcome and the response. In addition, there exists a variable ($U \sim unif[-2, 2]$) that is unobservable to researchers but also affects both the outcome and the response. We describe the DGP with more details in the [paper](https://www.cambridge.org/core/journals/political-analysis/article/generalizing-trimming-bounds-for-endogenously-missing-outcome-data-using-random-forests/522453BEDE846D6398CFFA82F5D35A23?utm_date=20250627). 
 ```{r data, message = FALSE, warning = FALSE, fig.ext = 'png', out.width="60%", , out.height="60%", fig.align = 'center'}
 set.seed(1234)
 library(grf)
@@ -170,38 +171,48 @@ points(subset(dat_full, D==0)$X2,
        cex = .4)
 ```
 
-Plots above show
+The first two plots above display the distributions of the potential outcomes without and with sample attrition, respectively, while the last plot shows the distribution of observed outcomes in the data. Due to endogenous sample selection, the difference-in-means estimator is biased for either the ATE or the LATE on the always-responders.
 ```{r estimand, message = FALSE, warning = FALSE}
 # generate the data with missing outcome values
 dat <- dat_full
 dat[dat$S == 0, "Y"] <- NA
-
-cat("The ATE equals ", mean(dat_full$Y1 - dat_full$Y0), "\n")
-cat("The ATE for always-responders equals ", mean(true_parameters$Ete_ar), "\n")
+ate <- mean(dat_full$Y1 - dat_full$Y0)
+late_ar <- mean(true_parameters$Ete_ar)
+cat("The ATE equals ", ate, "\n")
+cat("The LATE for always-responders equals ", late_ar, "\n")
 cat("The difference-in-means estimator generates an estimate of ", mean(dat$Y[dat$D == 1 & dat$S == 1]) - mean(dat$Y[dat$D == 0 & dat$S == 1]), "\n")
 ```
 
-## Aggregated covariate-tightened trimming bounds
-**CTB** allows users to estimate
-We first estimate the aggregated bounds and the classic Lee bounds.
+## Aggregated trimming bounds
+We first use the *CTTB()* function to estimate the aggregated bounds, including the basic trimming bounds and the covariate-tightened trimming bounds, for the LATE on the always-responders in the data. The function requires users to specify the dataset ($data$), the outcome variable ($Y$), the treatment ($D$), the response indicator ($S$), the covariates ($X$), and the propensity score ($Ps$). In observational studies, propensity score does not need to be specified and will be estimated from data (see the application below). We allow for the possibility of conditionally monotonic selection (*cond\_mono = TRUE*) when estimating the basic trimming bounds and construct confidence intervals for both the effect estimate and the bounds (*IM\_cv = TRUE*).
+
+By applying the *summary()* function to the output of *CTTB()*, researchers can view the estimated lower and upper bounds using either TB or CTTB, along with their standard error estimates and 95\% confidence intervals for both the bounds and the treatment effect---all presented in data frame format. Relevant information can then be easily extracted for further analysis. The results suggest that bounds estimated by either CTTB or TB cover the LATE for the always-responders, consistent with the theoretical conclusion. In addition, the bounds estimated by CTTB are indeed narrower than those obtained using TB, and they indicate that the LATE for the always-responders is significantly greater than zero in the simulated data.
 ```{r agg, message = FALSE, warning = FALSE}
-result <- CTTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, LeeBounds = 1, cBounds = 0, X_moderator = NULL, cond.mono = FALSE)
+result <- CTTB(data = dat, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), Pscore = "Ps", aggBounds = TRUE, LeeBounds = TRUE, IM_cv = TRUE, cond_mono = TRUE)
 
 summary(result)
 ```
 
 ```{r agg-plot, message = FALSE, warning = FALSE}
-plot(result)
+p <- plot(result) 
+p
+```
+Researchers can also visualize results from *CTTB()* using the *plot()* function, which produces a coefficient plot with confidence intervals based on *ggplot2*. Additional elements can be added to the generated plot to support further analysis. For example, one can compare the estimated bounds against the ATE and the LATE for the always-responders, as illustrated in the plot below.
+```{r agg-plot-truth, message = FALSE, warning = FALSE}
+p + geom_hline(aes(yintercept = ate), colour = "red", lty=2) +
+  geom_hline(aes(yintercept = late_ar), colour = "red", lty=4)
 ```
 
-**Uncertainty estimates.** 
+There are several other options under the control of researchers. *cv\_fold* decides how many folds of data are generated in cross-fitting. *splitting* determines whether regression splitting is activated in *grf*. *trim_l* and *trim_u* let researchers trim propensity score or conditional trimming probability estimates that are either too small or too large. *alpha* is the significance level.     
+```{r agg-options, message = FALSE, warning = FALSE}
+result <- CTTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), Pscore = "Ps", cv_fold = 5, aggBounds = TRUE, LeeBounds = TRUE, cBounds = FALSE, X_moderator = NULL, cond_mono = FALSE)
 
-**Result summary.** Users can use the **print** function to take a look at a summary of the estimation results or retrieve relevant statistics by directly accessing the fect object. 
-Specifically, `est.avg` and `est.avg.unit` show the ATT averaged over all periods -- the former weights each treated observation equally while the latter weights each treated unit equally. 
-`est.beta` reports the coefficients of the time-varying covariates. `est.att` reports the average treatment effect on the treated (ATT) by period. Treatment effect estimates from each bootstrap run is stored in `eff.boot`, an array whose dimension = (#time periods * #treated * #bootstrap runs).
+summary(result)
+```
 
 
-## Conditional bounds
+## Conditional trimming bounds
+With *CTTB()*, researchers can invesigate how
 ```{r cond, message = FALSE, warning = FALSE}
 X <- c(names(dat)[c(2:12)])
 X_avg <- apply(dat[, X[-2]], 2, mean)
@@ -252,23 +263,14 @@ S <- "began_convo"
 D <- "condition"
 X <- names(dat)[c(4, 10, 19:62)]
 
-result <- CTB(data = dat, seed = seed, 
-              Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
-              regression.splitting = FALSE, cv_fold = 5,
-              aggBounds = 1,
-              cBounds = 0, X_moderator = NULL, 
-              direction = NULL,
-              cond.mono = 0)
+result <- CTTB(data = dat, seed = seed, 
+               Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
+               splitting = FALSE, cv_fold = 5,
+               aggBounds = 1,
+               cBounds = 0, X_moderator = NULL, 
+               cond_mono = 0)
 
-tau_l_est_avg <- result[["tau_l_est_avg"]]
-tau_u_est_avg <- result[["tau_u_est_avg"]]
-se_tau_l_est_avg <- result[["se_tau_l_est_avg"]]
-se_tau_u_est_avg <- result[["se_tau_u_est_avg"]]
-
-tau_l_est_lee_mono <- result[["tau_l_est_lee"]]
-tau_u_est_lee_mono <- result[["tau_u_est_lee"]]
-se_tau_l_est_lee_mono <- result[["se_tau_l_est_lee"]]
-se_tau_u_est_lee_mono <- result[["se_tau_u_est_lee"]]
+summary(result)
 ```
 
 Here `LeeBounds = 1` indicates we want Lee bounds and `cond.mono = 0` indicates we want strict
@@ -279,71 +281,65 @@ For our CTTB, the conditional monotonicity is always set as default.
 By setting `cond.mono = 1`, we allow the Lee bounds also have conditional monotonicity.
 
 ```{r santoro2022 result2, message = FALSE, warning = FALSE}
-result.lee <- CTB(data = dat, seed = seed, 
-                  Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
-                  regression.splitting = FALSE, cv_fold = 5,
-                  aggBounds = 0,
-                  cBounds = 0, X_moderator = NULL, 
-                  direction = NULL,
-                  cond.mono = 1)
+result.lee <- CTTB(data = dat, seed = seed, 
+                   Y = Y, D = D, S = S, X = X, W = NULL, 
+                   Pscore = "Ps", splitting = FALSE, cv_fold = 5,
+                   aggBounds = 0, cBounds = 0, X_moderator = NULL, 
+                   cond_mono = 1)
 
-tau_l_est_lee_condmono <- result.lee[["tau_l_est_lee"]]
-tau_u_est_lee_condmono <- result.lee[["tau_u_est_lee"]]
-se_tau_l_est_lee_condmono <- result.lee[["se_tau_l_est_lee"]]
-se_tau_u_est_lee_condmono <- result.lee[["se_tau_u_est_lee"]]
-
+summary(result)
 ```
 
 
 
 ```{r santoro2022 result3 , message = FALSE, warning = FALSE}
 # estimate the ate using observations that select into the sample
-library(sandwich)
-reg_formula <- as.formula(paste0(Y, "~", D, "+", paste0(X, collapse = "+")))
-tau_reg <- lm(reg_formula, dat[dat[, S] == 1, ])
-tau_ate <- coef(tau_reg)[2]
-se_tau_ate <- sqrt(vcovHC(tau_reg, type = "HC1")[2, 2])
-sqrt(vcovCL(tau_reg, cluster = dat$allsides_link)[2, 2])
-
-all_ests <- c(tau_l_est_avg, tau_u_est_avg, 
-              tau_l_est_lee_condmono, tau_u_est_lee_condmono,
-              tau_l_est_lee_mono, tau_u_est_lee_mono,
-              tau_ate)
-all_CI95_upper <- c(tau_l_est_avg + 1.96*se_tau_l_est_avg, 
-                    tau_u_est_avg + 1.96*se_tau_u_est_avg, 
-                    tau_l_est_lee_condmono + 1.96*se_tau_l_est_lee_condmono, 
-                    tau_u_est_lee_condmono + 1.96*se_tau_u_est_lee_condmono,
-                    tau_l_est_lee_mono + 1.96*se_tau_l_est_lee_mono, 
-                    tau_u_est_lee_mono + 1.96*se_tau_u_est_lee_mono,
-                    tau_ate + 1.96*se_tau_ate)
-all_CI95_lower <- c(tau_l_est_avg - 1.96*se_tau_l_est_avg, 
-                    tau_u_est_avg - 1.96*se_tau_u_est_avg, 
-                    tau_l_est_lee_condmono - 1.96*se_tau_l_est_lee_condmono, 
-                    tau_u_est_lee_condmono - 1.96*se_tau_u_est_lee_condmono,
-                    tau_l_est_lee_mono - 1.96*se_tau_l_est_lee_mono, 
-                    tau_u_est_lee_mono - 1.96*se_tau_u_est_lee_mono,
-                    tau_ate - 1.96*se_tau_ate)
-
-method <- c("CTB", "CTB", "TB (cond. mono.)", "TB (cond. mono.)", "TB (mono.)", "TB (mono.)", "OLS")
-method <- factor(method, levels = c("OLS", "TB (mono.)", "TB (cond. mono.)", "CTB"))
-
-type <- c("Lower", "Upper", "Lower", "Upper", "Lower", "Upper", "ATE")
-
-p.data <- data.frame("Estimates" = round(all_ests, 3), "CI95_u" = round(all_CI95_upper, 3), 
-                     "CI95_l" = round(all_CI95_lower, 3), "Method" = method, "Estimand" = type)
- 
-pd <- position_dodge(width=0.2)
-coefs_p <- ggplot(p.data, aes(Method, Estimates, color=Estimand)) +
-  geom_point(aes(shape=Method), size=4, position=pd, show.legend = FALSE) +
-  scale_color_manual(name="Estimand",values=c("black", "blue", "red")) +
-  scale_shape_manual(name="Method",values=c(19, 17, 17, 15)) +
-  theme_bw() +
-  geom_errorbar(aes(Method, ymin=CI95_l, ymax=CI95_u), width=0.1, position=pd) + 
-  geom_hline(aes(yintercept = 0), colour = "black", lty=2) + xlab('') + ylab('') +
-  theme(plot.title = element_text(hjust = 0.5), text = element_text(size=25), axis.text.x = element_text(angle = 0), legend.position="top") + 
-  ylab("Impact on warmth toward outparty voters") +
-  coord_flip()
-coefs_p
+# library(sandwich)
+# reg_formula <- as.formula(paste0(Y, "~", D, "+", paste0(X, collapse = "+")))
+# tau_reg <- lm(reg_formula, dat[dat[, S] == 1, ])
+# tau_ate <- coef(tau_reg)[2]
+# se_tau_ate <- sqrt(vcovHC(tau_reg, type = "HC1")[2, 2])
+# sqrt(vcovCL(tau_reg, cluster = dat$allsides_link)[2, 2])
+# 
+# all_ests <- c(tau_l_est_avg, tau_u_est_avg, 
+#               tau_l_est_lee_condmono, tau_u_est_lee_condmono,
+#               tau_l_est_lee_mono, tau_u_est_lee_mono,
+#               tau_ate)
+# all_CI95_upper <- c(tau_l_est_avg + 1.96*se_tau_l_est_avg, 
+#                     tau_u_est_avg + 1.96*se_tau_u_est_avg, 
+#                     tau_l_est_lee_condmono + 1.96*se_tau_l_est_lee_condmono, 
+#                     tau_u_est_lee_condmono + 1.96*se_tau_u_est_lee_condmono,
+#                     tau_l_est_lee_mono + 1.96*se_tau_l_est_lee_mono, 
+#                     tau_u_est_lee_mono + 1.96*se_tau_u_est_lee_mono,
+#                     tau_ate + 1.96*se_tau_ate)
+# all_CI95_lower <- c(tau_l_est_avg - 1.96*se_tau_l_est_avg, 
+#                     tau_u_est_avg - 1.96*se_tau_u_est_avg, 
+#                     tau_l_est_lee_condmono - 1.96*se_tau_l_est_lee_condmono, 
+#                     tau_u_est_lee_condmono - 1.96*se_tau_u_est_lee_condmono,
+#                     tau_l_est_lee_mono - 1.96*se_tau_l_est_lee_mono, 
+#                     tau_u_est_lee_mono - 1.96*se_tau_u_est_lee_mono,
+#                     tau_ate - 1.96*se_tau_ate)
+# 
+# method <- c("CTB", "CTB", "TB (cond. mono.)", "TB (cond. mono.)", "TB (mono.)", "TB (mono.)", "OLS")
+# method <- factor(method, levels = c("OLS", "TB (mono.)", "TB (cond. mono.)", "CTB"))
+# 
+# type <- c("Lower", "Upper", "Lower", "Upper", "Lower", "Upper", "ATE")
+# 
+# p.data <- data.frame("Estimates" = round(all_ests, 3), "CI95_u" = round(all_CI95_upper, 3), 
+#                      "CI95_l" = round(all_CI95_lower, 3), "Method" = method, "Estimand" = type)
+#  
+# pd <- position_dodge(width=0.2)
+# coefs_p <- ggplot(p.data, aes(Method, Estimates, color=Estimand)) +
+#   geom_point(aes(shape=Method), size=4, position=pd, show.legend = FALSE) +
+#   scale_color_manual(name="Estimand",values=c("black", "blue", "red")) +
+#   scale_shape_manual(name="Method",values=c(19, 17, 17, 15)) +
+#   theme_bw() +
+#   geom_errorbar(aes(Method, ymin=CI95_l, ymax=CI95_u), width=0.1, position=pd) + 
+#   geom_hline(aes(yintercept = 0), colour = "black", lty=2) + xlab('') + ylab('') +
+#   theme(plot.title = element_text(hjust = 0.5), text = element_text(size=25), axis.text.x = element_text(angle = 0), legend.position="top") + 
+#   ylab("Impact on warmth toward outparty voters") +
+#   coord_flip()
+# coefs_p
 ```
 
 We show how to estimate the conditional bounds. We set the age
@@ -351,40 +347,40 @@ as moderator, and keep all other variables at the sample mean.
 
 
 ```{r santoro 2022 moderate, message = FALSE, warning = FALSE}
-X_avg <- c(mean(dat[, X[2]]), c(1, rep(0, 5)), c(0, 1, rep(0, 3)), c(rep(0, 3), 1, 0), c(1, rep(0, 2)), c(rep(0, 10), 1, rep(0, 14)))
-Xm_evals <- unique(quantile(dat[, X[1]], seq(0.1, 0.9, 0.1)))
-X_moderator <- matrix(rep(X_avg, length(Xm_evals)), length(X_avg), length(Xm_evals))
-X_moderator <- rbind(X_moderator, Xm_evals)
-X_moderator <- t(X_moderator)
-X_moderator <- cbind(X_moderator[, 46], X_moderator[, 1:45])
-
-pf0 <- probability_forest(X = as.matrix(dat[dat[, D] == 0, X]), Y = as.factor(unlist(dat[dat[, D] == 0, S])), seed = seed)
-pf1 <- probability_forest(X = as.matrix(dat[dat[, D] == 1, X]), Y = as.factor(unlist(dat[dat[, D] == 1, S])), seed = seed)
-
-pf0_pred <- predict(pf0, newdata = as.matrix(dat[, X]))
-pf1_pred <- predict(pf1, newdata = as.matrix(dat[, X]))
-
-pf0_pred_m <- predict(pf0, newdata = as.matrix(X_moderator))
-pf1_pred_m <- predict(pf1, newdata = as.matrix(X_moderator))
-
-# estimate Relative share of always-responders
-one_q0_m <- pf0_pred_m$predictions[, 2]
-one_q1_m <- pf1_pred_m$predictions[, 2]
-one_q <- one_q0_m / one_q1_m
-one_q[one_q > 1] <- 1/one_q[one_q > 1]
-
-result <- CTB(data = dat, seed = seed,
-              Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
-              regression.splitting = FALSE, cv_fold = 5,
-              aggBounds = 0,
-              cBounds = 1, X_moderator = X_moderator, 
-              direction = NULL,
-              cond.mono = 0)
-
-tau_l_m_avg <- result[["tau_l_est_cond"]]
-tau_u_m_avg <- result[["tau_u_est_cond"]]
-se_tau_l_m_avg <- result[["se_tau_l_est_cond"]]
-se_tau_u_m_avg <- result[["se_tau_u_est_cond"]]
+# X_avg <- c(mean(dat[, X[2]]), c(1, rep(0, 5)), c(0, 1, rep(0, 3)), c(rep(0, 3), 1, 0), c(1, rep(0, 2)), c(rep(0, 10), 1, rep(0, 14)))
+# Xm_evals <- unique(quantile(dat[, X[1]], seq(0.1, 0.9, 0.1)))
+# X_moderator <- matrix(rep(X_avg, length(Xm_evals)), length(X_avg), length(Xm_evals))
+# X_moderator <- rbind(X_moderator, Xm_evals)
+# X_moderator <- t(X_moderator)
+# X_moderator <- cbind(X_moderator[, 46], X_moderator[, 1:45])
+# 
+# pf0 <- probability_forest(X = as.matrix(dat[dat[, D] == 0, X]), Y = as.factor(unlist(dat[dat[, D] == 0, S])), seed = seed)
+# pf1 <- probability_forest(X = as.matrix(dat[dat[, D] == 1, X]), Y = as.factor(unlist(dat[dat[, D] == 1, S])), seed = seed)
+# 
+# pf0_pred <- predict(pf0, newdata = as.matrix(dat[, X]))
+# pf1_pred <- predict(pf1, newdata = as.matrix(dat[, X]))
+# 
+# pf0_pred_m <- predict(pf0, newdata = as.matrix(X_moderator))
+# pf1_pred_m <- predict(pf1, newdata = as.matrix(X_moderator))
+# 
+# # estimate Relative share of always-responders
+# one_q0_m <- pf0_pred_m$predictions[, 2]
+# one_q1_m <- pf1_pred_m$predictions[, 2]
+# one_q <- one_q0_m / one_q1_m
+# one_q[one_q > 1] <- 1/one_q[one_q > 1]
+# 
+# result <- CTB(data = dat, seed = seed,
+#               Y = Y, D = D, S = S, X = X, W = NULL, Pscore = "Ps",
+#               regression.splitting = FALSE, cv_fold = 5,
+#               aggBounds = 0,
+#               cBounds = 1, X_moderator = X_moderator, 
+#               direction = NULL,
+#               cond.mono = 0)
+# 
+# tau_l_m_avg <- result[["tau_l_est_cond"]]
+# tau_u_m_avg <- result[["tau_u_est_cond"]]
+# se_tau_l_m_avg <- result[["se_tau_l_est_cond"]]
+# se_tau_u_m_avg <- result[["se_tau_u_est_cond"]]
 
 ```
 
@@ -394,25 +390,25 @@ the conditional bounds.
 
 The results are plot as follows:
 ```{r santoro result plot, message=FALSE, warning=FALSE}
-pdata_m <- data.frame("X" = X_moderator[, 1], "tau_u_m_avg" = tau_u_m_avg,
-                      "tau_l_m_avg" = tau_l_m_avg, "se_tau_u_m_avg" = se_tau_u_m_avg,
-                      "se_tau_l_m_avg" = se_tau_l_m_avg, "one_q" = one_q)
-pdata_m <- pdata_m[order(pdata_m$X), ] 
-par(mar = c(5, 5, 2, 2))
-plot(tau_u_m_avg ~ X, pdata_m, type = "p", ylab = "Conditional bounds", 
-     xlab = "Age", col = "red", ylim = c(-.8, 2.2), pch = 20,
-     cex = 2, cex.lab=2, cex.axis=2)
-lines(tau_u_m_avg - 1.96*se_tau_u_m_avg ~ X, pdata_m, col = "red", lty = 3, lwd = 1)
-lines(tau_u_m_avg + 1.96*se_tau_u_m_avg ~ X, pdata_m, col = "red", lty = 3, lwd = 1)
-points(tau_l_m_avg ~ X, pdata_m, col = "blue", lty = 2, pch = 20, cex = 2)
-lines(tau_l_m_avg - 1.96*se_tau_l_m_avg ~ X, pdata_m, col = "blue", lty = 3, lwd =1)
-lines(tau_l_m_avg + 1.96*se_tau_l_m_avg ~ X, pdata_m, col = "blue", lty = 3, lwd = 1)
-lines(one_q ~ X, pdata_m, col = "black", lty = 4, lwd = 1)
-abline(h = 0, lty = 2, col = "gray", lwd = 1)
-legend("topleft", pch = c(20, 20, NA, NA, NA), lty = c(NA, NA, 3, 3, 4), lwd = c(NA, NA, 1, 1, 1),
-       col = c("red", "blue", "red", "blue", "black"),
-       legend = c("Upper bounds", "Lower bounds", "95% CI of upper bounds", "95% CI of lower bounds", "Relative share of always-responders"), 
-       cex = 2, bty = "n")
+# pdata_m <- data.frame("X" = X_moderator[, 1], "tau_u_m_avg" = tau_u_m_avg,
+#                       "tau_l_m_avg" = tau_l_m_avg, "se_tau_u_m_avg" = se_tau_u_m_avg,
+#                       "se_tau_l_m_avg" = se_tau_l_m_avg, "one_q" = one_q)
+# pdata_m <- pdata_m[order(pdata_m$X), ] 
+# par(mar = c(5, 5, 2, 2))
+# plot(tau_u_m_avg ~ X, pdata_m, type = "p", ylab = "Conditional bounds", 
+#      xlab = "Age", col = "red", ylim = c(-.8, 2.2), pch = 20,
+#      cex = 2, cex.lab=2, cex.axis=2)
+# lines(tau_u_m_avg - 1.96*se_tau_u_m_avg ~ X, pdata_m, col = "red", lty = 3, lwd = 1)
+# lines(tau_u_m_avg + 1.96*se_tau_u_m_avg ~ X, pdata_m, col = "red", lty = 3, lwd = 1)
+# points(tau_l_m_avg ~ X, pdata_m, col = "blue", lty = 2, pch = 20, cex = 2)
+# lines(tau_l_m_avg - 1.96*se_tau_l_m_avg ~ X, pdata_m, col = "blue", lty = 3, lwd =1)
+# lines(tau_l_m_avg + 1.96*se_tau_l_m_avg ~ X, pdata_m, col = "blue", lty = 3, lwd = 1)
+# lines(one_q ~ X, pdata_m, col = "black", lty = 4, lwd = 1)
+# abline(h = 0, lty = 2, col = "gray", lwd = 1)
+# legend("topleft", pch = c(20, 20, NA, NA, NA), lty = c(NA, NA, 3, 3, 4), lwd = c(NA, NA, 1, 1, 1),
+#        col = c("red", "blue", "red", "blue", "black"),
+#        legend = c("Upper bounds", "Lower bounds", "95% CI of upper bounds", "95% CI of lower bounds", "Relative share of always-responders"), 
+#        cex = 2, bty = "n")
 
 ```
 

@@ -7,7 +7,7 @@
 Pscore = NULL, splitting = FALSE, cv_fold = 5,
 trim_l = 0, trim_u = 1, aggBounds = TRUE, IM_cv = TRUE,
 alpha = 0.05, cBounds = FALSE, X_moderator = NULL, LeeBounds = FALSE,
-direction = NULL, cond.mono = TRUE, message = TRUE)
+cond_mono = TRUE)
 }
 \arguments{
 \item{data}{a data frame.}

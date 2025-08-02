@@ -2,7 +2,7 @@
 CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
                  splitting = FALSE, cv_fold = 5, trim_l = 0, trim_u = 1,
                  aggBounds = TRUE, IM_cv = TRUE, alpha = 0.05, cBounds = FALSE, X_moderator = NULL,
-                 LeeBounds = FALSE, cond.mono = TRUE){
+                 LeeBounds = FALSE, cond_mono = TRUE){
 
   if (is.null(data)){
     stop("No dataset specified")
@@ -100,8 +100,8 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
   result <- list()
   if (bo == 1){
     if (LeeBounds){
-      lee.result <- LBounds_binary(dat_final, Y, X, S, D, W, Pscore,
-                                   cond.mono)
+      lee.result <- LBounds_binary(dat_final, seed = seed, Y, X, S, D, W, Pscore,
+                                   cond_mono)
       if (IM_cv){
         IM_cv_lee <- IM_cv(lee.result[["tau_l_est_lee"]], lee.result[["tau_u_est_lee"]],
                            lee.result[["se_tau_l_est_lee"]], lee.result[["se_tau_u_est_lee"]],
@@ -144,8 +144,8 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
     }
   }else{
     if (LeeBounds){
-      lee.result <- LBounds_cont(dat_final, Y, X, S, D, W, Pscore,
-                                 cond.mono)
+      lee.result <- LBounds_cont(dat_final, seed = seed, Y, X, S, D, W, Pscore,
+                                 cond_mono)
       if (IM_cv){
         IM_cv_lee <- IM_cv(lee.result[["tau_l_est_lee"]], lee.result[["tau_u_est_lee"]],
                            lee.result[["se_tau_l_est_lee"]], lee.result[["se_tau_u_est_lee"]],
@@ -221,7 +221,7 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
     }
   }
   result[["parameters"]] <- c("bo" = bo, "LeeBounds" = LeeBounds, "aggBounds" = aggBounds,
-                              "cBounds" = cBounds, "IM_cv" = IM_cv, "cond.mono" = cond.mono)
+                              "cBounds" = cBounds, "IM_cv" = IM_cv, "cond_mono" = cond_mono)
   class(result) <- "CTTB"
   result$call <- match.call()
   return(result)
