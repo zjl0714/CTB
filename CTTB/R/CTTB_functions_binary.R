@@ -153,8 +153,9 @@ LBounds_binary_oneshot <- function(dat_bo, Y, X, S, D, W, direction){
 
   q0_lee <- sum(dat_bo[, S] * (1-dat_bo[, D]) * dat_bo[, W]) / sum((1-dat_bo[, D]) * dat_bo[, W])
   q1_lee <- sum(dat_bo[, S] * dat_bo[, D] * dat_bo[, W]) / sum(dat_bo[, D] * dat_bo[, W])
+  direction <- as.numeric(q0_lee < q1_lee)
 
-  if (direction == 1){
+  if (direction){
     q_lee <- q0_lee / q1_lee
     xi_lee <- sum(dat_bo[, S] * dat_bo[, D] * dat_bo[, W] * (1 - dat_bo[, Y]), na.rm = 1) / sum(dat_bo[, S] * dat_bo[, D] * dat_bo[, W])
     theta1_l_lee <- (q_lee - xi_lee) * (q_lee >= xi_lee) / q_lee
@@ -176,9 +177,9 @@ LBounds_binary_oneshot <- function(dat_bo, Y, X, S, D, W, direction){
 
 
 LBounds_binary <- function(dat_final, Y, X, S, D, W, Pscore,
-                           cond.mono = FALSE, direction = NULL, Nboots = 1000){
+                           cond.mono = FALSE, Nboots = 1000){
 
-  if (cond.mono == 1){
+  if (cond.mono){
     if (is.null(seed)){
       pf0 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 0, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 0, S])), sample.weights = dat_final[dat_final[, D] == 0, W])
       pf1 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 1, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 1, S])), sample.weights = dat_final[dat_final[, D] == 1, W])
@@ -250,10 +251,8 @@ LBounds_binary <- function(dat_final, Y, X, S, D, W, Pscore,
     q0_lee <- sum(dat_final[, S] * (1-dat_final[, D]) * dat_final[, W]) / sum((1-dat_final[, D]) * dat_final[, W])
     q1_lee <- sum(dat_final[, S] * dat_final[, D] * dat_final[, W]) / sum(dat_final[, D] * dat_final[, W])
 
-    if (is.null(direction)){
-      direction <- as.numeric(q0_lee < q1_lee)
-    }
-    if (direction == 1){
+    direction <- as.numeric(q0_lee < q1_lee)
+    if (direction){
       cat("S(1) > S(0)", "\n")
 
       ests_lee <- LBounds_binary_oneshot(dat_final, Y, X, S, D, W, direction = 1)
@@ -269,7 +268,7 @@ LBounds_binary <- function(dat_final, Y, X, S, D, W, Pscore,
 
       se_tau_l_lee <- sqrt(var(ests_lee_boot[, 1]))
       se_tau_u_lee <- sqrt(var(ests_lee_boot[, 2]))
-    }else if (direction == 0){
+    }else{
       cat("S(0) > S(1)", "\n")
       ests_lee <- LBounds_binary_oneshot(dat_final, Y, X, S, D, W, direction = 0)
 
@@ -284,8 +283,6 @@ LBounds_binary <- function(dat_final, Y, X, S, D, W, Pscore,
 
       se_tau_l_lee <- sqrt(var(ests_lee_boot[, 1]))
       se_tau_u_lee <- sqrt(var(ests_lee_boot[, 2]))
-    }else{
-      stop("Direction can only be 0 or 1")
     }
   }
   result <- list("tau_l_est_lee" = tau_l_lee,

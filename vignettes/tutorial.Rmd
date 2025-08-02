@@ -40,7 +40,7 @@ knitr::opts_chunk$set(
 )
 ```  
 
-In this tutorial, we demonstrate how to use the *CTB* package in *R* for implementing the covariate-tightened trimming bounds method proposed by @samii2023generalizing. This method enables empirical researchers to construct bounds for the local average treatment effect on a sub-population known as the always-responders in experiments or quasi-experiments, when faced with missing outcome or sample selection driven by potentially unobservable factors. 
+In this tutorial, we demonstrate how to use the *CTTB* package in *R* for implementing the method of covariate-tightened trimming bounds proposed by @samii2023generalizing. This method enables empirical researchers to construct bounds for the local average treatment effect on a sub-population known as the always-responders in experiments or quasi-experiments, when faced with missing outcome or sample selection driven by potentially unobservable factors. 
 
 ## Problems with endogenous sample selection
 Consider an experiment with $N$ units. For each unit $i$, we denote the outcome as $Y_i$, the binary treatment status as $D_i$, the binary response indicator as $S_i$, and $P$ pre-treatment covariates as $\mathbf{X}_i = (X_{1i}, X_{2i}, \dots, X_{Pi})$. The outcome $Y_i$ is observed only when $S_i = 1$. The variable $S_i$ reflects whether the unit opts to participate in the experiment or selects into reporting the outcome, and it may be influenced by the treatment status. Under the potential outcome framework, we have
@@ -103,9 +103,9 @@ One limitation of the basic trimming bounds is that they can be very wide in pra
 We now show how to use the main functions in the package with a simulated experiment (*dat_full*). The dataset includes $1,000$ units. The treatment is randomly assigned with a probability of $0.5$. For each unit, we have $10$ covariates, $X1$ to $X10$. All the covariates are uniformed distributed on $[0, 1]$. Among them, only one ($X1$) affects both the outcome and the response. In addition, there exists a variable ($U \sim unif[-2, 2]$) that is unobservable to researchers but also affects both the outcome and the response. We describe the DGP with more details in the [paper](https://papers.ssrn.com/abstract=3555463). 
 ```{r data, message = FALSE, warning = FALSE, fig.ext = 'png', out.width="60%", , out.height="60%", fig.align = 'center'}
 set.seed(1234)
-library(CTB)
 library(grf)
 library(ggplot2)
+library(CTTB)
 data(simData)
 
 N <- nrow(dat_full)
@@ -185,19 +185,14 @@ cat("The difference-in-means estimator generates an estimate of ", mean(dat$Y[da
 **CTB** allows users to estimate
 We first estimate the aggregated bounds and the classic Lee bounds.
 ```{r agg, message = FALSE, warning = FALSE}
-result <- CTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, cBounds = 0, X_moderator = NULL, direction = NULL, cond.mono = FALSE)
+result <- CTTB(data = dat, seed = NULL, Y = "Y", D = "D", S = "S", X = c(names(dat)[c(2:12)]), W = NULL, Pscore = "Ps", cv_fold = 5, aggBounds = 1, LeeBounds = 1, cBounds = 0, X_moderator = NULL, cond.mono = FALSE)
 
-tau_l_est_avg <- result[["tau_l_est_avg"]]
-tau_u_est_avg <- result[["tau_u_est_avg"]]
-se_tau_l_est_avg <- result[["se_tau_l_est_avg"]]
-se_tau_u_est_avg <- result[["se_tau_u_est_avg"]]
-  
-tau_l_est_lee <- result[["tau_l_est_lee"]]
-tau_u_est_lee <- result[["tau_u_est_lee"]]
-se_tau_l_est_lee <- result[["se_tau_l_est_lee"]]
-se_tau_u_est_lee <- result[["se_tau_u_est_lee"]]
+summary(result)
 ```
 
+```{r agg-plot, message = FALSE, warning = FALSE}
+plot(result)
+```
 
 **Uncertainty estimates.** 
 

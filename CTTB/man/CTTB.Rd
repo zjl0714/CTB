@@ -1,3 +1,4 @@
+\encoding{UTF-8}
 \name{CTTB}
 \alias{CTTB}
 \title{Covariate-tightened trimming bounds}
@@ -19,19 +20,19 @@ direction = NULL, cond.mono = TRUE, message = TRUE)
 
 \item{S}{name of the variable indicating the response. This variable should be dichotomous (0 and 1) in data.}
 
-\item{X}{names of the covariates.}
+\item{X}{names of the covariates. These variables should be continuous in data.}
 
 \item{W}{name of the variable indicating the sampling weights. If unspecified, units will be equally weighted.}
 
 \item{Pscore}{name of the variable indicating the probability of being treated. If unspecified, the probability will be estimated from data.}
 
-\item{splitting}{a logical flag indicating whether to use regression splitting}
+\item{splitting}{a logical flag indicating whether to use regression splitting.}
 
 \item{cv_fold}{an integer specifying the number of folds used in cross-validation. The default value is 5.}
 
-\item{trim_l}{the lower bound of }
+\item{trim_l}{lower bound of the conditional trimming probability and propensity score. Any estimates below this threshold will be set to  \code{trim_l}. Default is \code{trim_l = 0}.}
 
-\item{trim_u}{the upper bound of}
+\item{trim_u}{upper bound of the conditional trimming probability and propensity score. Any estimates above this threshold will be set to \code{trim_u}. Default is \code{trim_u = 1}.}
 
 \item{aggBounds}{a logical flag indicating whether to calculate the aggregated bounds. Default is \code{aggBounds = TRUE}.}
 
@@ -45,8 +46,6 @@ direction = NULL, cond.mono = TRUE, message = TRUE)
 
 \item{LeeBound}{a logical flag indicating whether to calculate the basic trimming bounds (Lee bounds). Default is \code{LeeBounds = FALSE}.}
 
-\item{direction}{a logical flag indicating whether to calculate the basic trimming bounds (Lee bounds). Default is \code{LeeBounds = FALSE}.}
-
 \item{cond.mono}{a logical flag indicating whether to allow for the assumption of conditional monotonic selection. Default is \code{cond.mono = TRUE}.}
 }
 
@@ -56,13 +55,13 @@ among always-responders conditional on covariate values, and to aggregate these 
 }
 
 \value{
-  \item{TB}{estimate of the lower bound in the classic trimming bounds.}
+  \item{TB}{a data frame with bounds estimates, their standard errors, and confidence intervals using the classic trimming bounds method.}
 
-  \item{CTTB}{estimate of the upper bound in the classic trimming bounds.}
+  \item{CTTB}{a data frame with bounds estimates, their standard errors, and confidence intervals using the covariate-tightened trimming bounds method.}
 
-  \item{cB}{standard error estimate of the estimated lower bound in the classic trimming bounds.}
+  \item{cB}{a data frame with conditional bounds estimates, their standard errors, and confidence intervals.}
 
-  \item{parameters}{a vector of parameters saving.}
+  \item{parameters}{a vector storing options chosen by the user.}
 }
 \author{
   Cyrus Samii (\email{cds2083@nyu.edu}), New York University.

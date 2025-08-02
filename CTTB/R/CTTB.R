@@ -1,15 +1,17 @@
+#' @export
 CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
                  splitting = FALSE, cv_fold = 5, trim_l = 0, trim_u = 1,
                  aggBounds = TRUE, IM_cv = TRUE, alpha = 0.05, cBounds = FALSE, X_moderator = NULL,
-                 LeeBounds = FALSE, direction = NULL, cond.mono = TRUE, message = TRUE){
+                 LeeBounds = FALSE, cond.mono = TRUE){
 
   if (is.null(data)){
     stop("No dataset specified")
   }
 
-  if (!is.null(seed)){
-    set.seed(seed)
+  if (is.null(seed)){
+    seed <- runif(1, 0, .Machine$integer.max)
   }
+  set.seed(seed)
 
   if (is.null(D)){
     stop("No treatment specified")
@@ -17,7 +19,7 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
     stop("Non-binary treatment")
   }
 
-  if (is.null(Pscore) & message == TRUE){
+  if (is.null(Pscore)){
     cat("Propensity scores are not specified and will be estimated using X.", "\n")
   }
 
@@ -34,8 +36,12 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
   }else{
     S1_sum <- sum(data[, S])
     S0_sum <- sum(1-data[, S])
-    if (message == TRUE){
-      cat("The average missing rate is ", round(S0_sum/N, 4), "\n")
+    cat("The average missing rate is ", round(S0_sum/N, 4), "\n")
+    if (sum(data[data[, D] == 1, S]) < 10 | sum(1 - data[data[, D] == 1, S]) < 10 |
+        sum(data[data[, D] == 0, S]) < 10 | sum(1 - data[data[, D] == 0, S]) < 10){
+      aggBounds <- FALSE
+      LeeBounds <- TRUE
+      cat("Not enough observations for estimating the covariate-tightened trimming bounds. Basic trimming bounds will be estimated. ", round(S0_sum/N, 4), "\n")
     }
   }
 
@@ -95,7 +101,7 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
   if (bo == 1){
     if (LeeBounds){
       lee.result <- LBounds_binary(dat_final, Y, X, S, D, W, Pscore,
-                                   cond.mono, direction)
+                                   cond.mono)
       if (IM_cv){
         IM_cv_lee <- IM_cv(lee.result[["tau_l_est_lee"]], lee.result[["tau_u_est_lee"]],
                            lee.result[["se_tau_l_est_lee"]], lee.result[["se_tau_u_est_lee"]],
@@ -117,8 +123,7 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
 
     if (aggBounds){
       agg.result <- aggBounds_binary(dat_final = dat_final, seed = seed, Y, X, S, D, W, Pscore,
-                                     splitting = splitting,
-                                     cv_fold = cv_fold, trim_l, trim_u)
+                                     splitting = splitting, cv_fold = cv_fold, trim_l, trim_u)
       if (IM_cv){
         IM_cv_agg <- IM_cv(agg.result[["tau_l_est_avg"]], agg.result[["tau_u_est_avg"]],
                            agg.result[["se_tau_l_est_avg"]], agg.result[["se_tau_u_est_avg"]],
@@ -140,7 +145,7 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
   }else{
     if (LeeBounds){
       lee.result <- LBounds_cont(dat_final, Y, X, S, D, W, Pscore,
-                                 cond.mono, direction, message=message)
+                                 cond.mono)
       if (IM_cv){
         IM_cv_lee <- IM_cv(lee.result[["tau_l_est_lee"]], lee.result[["tau_u_est_lee"]],
                            lee.result[["se_tau_l_est_lee"]], lee.result[["se_tau_u_est_lee"]],
@@ -231,6 +236,7 @@ IM_cv <- function(tau_l, tau_u, se_tau_l, se_tau_u, alpha, N){
   return(cv.IM$root)
 }
 
+#' @export
 print.CTTB <- function(result, ...) {
   if (result[["parameters"]]["LeeBounds"]){
     cat("Estimates from trimming bounds:", "\n")
@@ -247,22 +253,36 @@ print.CTTB <- function(result, ...) {
   invisible(result)
 }
 
+#' @export
 summary.CTTB <- function(result, ...) {
   if (result[["parameters"]]["LeeBounds"]){
     cat("Estimates from trimming bounds:", "\n")
-    print(result[["TB"]])
+    summary_TB <- result[["TB"]]
+    summary_TB[] <- lapply(result[["TB"]], function(x) {
+      if (is.numeric(x)) round(x, 3) else x
+    })
+    print(summary_TB)
   }
   if (result[["parameters"]]["aggBounds"]){
     cat("Estimates from covariate-tightened trimming bounds:", "\n")
-    print(result[["CTTB"]])
+    summary_CTTB <- result[["CTTB"]]
+    summary_CTTB[] <- lapply(result[["CTTB"]], function(x) {
+      if (is.numeric(x)) round(x, 3) else x
+    })
+    print(summary_CTTB)
   }
   if (result[["parameters"]]["cBounds"]){
     cat("Estimates of conditional bounds:", "\n")
-    print(result[["cB"]])
+    summary_cB <- result[["cB"]]
+    summary_cB[] <- lapply(result[["cB"]], function(x) {
+      if (is.numeric(x)) round(x, 3) else x
+    })
+    print(summary_cB)
   }
   invisible(result)
 }
 
+#' @export
 plot.CTTB <- function(result, type = "aggregated", moderator_plot = 1, ...) {
   if (type == "aggregated"){
     if (result[["parameters"]]["LeeBounds"]){
@@ -287,17 +307,19 @@ plot.CTTB <- function(result, type = "aggregated", moderator_plot = 1, ...) {
       ylab("Estimates") + coord_flip()
 
     y_min <- min(p.data$CI95_upper, na.rm = TRUE)
+    x_min <- ifelse(result[["parameters"]]["LeeBounds"] & result[["parameters"]]["aggBounds"], 2.3, 1.3)
+    x_max <- ifelse(result[["parameters"]]["LeeBounds"] & result[["parameters"]]["aggBounds"], 2.5, 1.5)
 
     if (result[["parameters"]]["IM_cv"]){
       coefs_p <- coefs_p + geom_errorbar(aes(Method, ymin=CI95_lower_IM, ymax=CI95_upper_IM), width=0.2, position=pd) +
-        annotate("segment", x = 2.2, xend = 2.2, y = y_min - 0.6, yend = y_min - 0.2, linetype = "dashed", size = 0.5) +
-        annotate("text", x = 2.2, y = y_min, label = "CI for the Bounds", hjust = 0, size = 5) +
-        annotate("segment", x = 2.5, xend = 2.5, y = y_min - 0.6, yend = y_min - 0.2, linetype = "solid", size = 0.5) +
-        annotate("text", x = 2.5, y = y_min, label = "IM CI for the Estimate", hjust = 0, size = 5)
+        annotate("segment", x = x_min, xend = x_min, y = y_min - 0.6, yend = y_min - 0.2, linetype = "dashed", size = 0.5) +
+        annotate("text", x = x_min, y = y_min, label = "CI for the Bounds", hjust = 0, size = 3) +
+        annotate("segment", x = x_max, xend = x_max, y = y_min - 0.6, yend = y_min - 0.2, linetype = "solid", size = 0.5) +
+        annotate("text", x = x_max, y = y_min, label = "IM CI for the Estimate", hjust = 0, size = 3)
     }else{
       coefs_p <- coefs_p +
-        annotate("segment", x = 2.2, xend = 2.2, y = y_min - 0.6, yend = y_min - 0.2, linetype = "dashed", size = 0.5) +
-        annotate("text", x = 2.2, y = y_min, label = "CI for the Bounds", hjust = 0, size = 5)
+        annotate("segment", x = x_min, xend = x_min, y = y_min - 0.6, yend = y_min - 0.2, linetype = "dashed", size = 0.5) +
+        annotate("text", x = x_min, y = y_min, label = "CI for the Bounds", hjust = 0, size = 3)
     }
     return(coefs_p)
   }else if (type == "conditional"){

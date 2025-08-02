@@ -1,3 +1,4 @@
+\encoding{UTF-8}
 \name{CTTB-package}
 \alias{CTTB-package}
 \title{Covariate-tightened trimming bounds}

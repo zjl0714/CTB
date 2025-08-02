@@ -452,9 +452,9 @@ condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
 }
 
 LBounds_cont <- function(dat_final, Y, X, S, D, W, Pscore,
-                         cond.mono = FALSE, direction = NULL, message){
+                         cond.mono = FALSE){
 
-  if (cond.mono == 1){
+  if (cond.mono){
     if (is.null(seed)){
       pf0 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 0, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 0, S])), sample.weights = dat_final[dat_final[, D] == 0, W])
       pf1 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 1, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 1, S])), sample.weights = dat_final[dat_final[, D] == 1, W])
@@ -571,13 +571,9 @@ LBounds_cont <- function(dat_final, Y, X, S, D, W, Pscore,
     q0_lee <- sum(dat_final[, S] * (1-dat_final[, D]) * dat_final[, W]) / sum((1-dat_final[, D]) * dat_final[, W])
     q1_lee <- sum(dat_final[, S] * dat_final[, D] * dat_final[, W]) / sum(dat_final[, D] * dat_final[, W])
 
-    if (is.null(direction)){
-      direction <- as.numeric(q0_lee < q1_lee)
-    }
-    if (direction == 1){
-      if (message == TRUE){
-          cat("S(1) > S(0)", "\n")
-        }
+    direction <- as.numeric(q0_lee < q1_lee)
+    if (direction){
+      cat("S(1) > S(0)", "\n")
       all_ys <- dat_final[dat_final[, D] == 1 & dat_final[, S] == 1, Y]
       all_ys_uni <- unique(dat_final[dat_final[, D] == 1 & dat_final[, S] == 1, Y])
       all_ys_uni <- sort(all_ys_uni)
@@ -618,10 +614,8 @@ LBounds_cont <- function(dat_final, Y, X, S, D, W, Pscore,
       var_tau_u_lee <- (sum(dat_final[, D]*dat_final[, S]*dat_final[, W]*as.numeric(dat_final[, Y] >= yq_u_lee)*as.numeric(dat_final[, Y]^2), na.rm = 1) / sum(dat_final[, D]*dat_final[, S]*dat_final[, W]*as.numeric(dat_final[, Y] >= yq_u_lee), na.rm = 1) - theta1_u_lee^2) / (ESD * q_lee) +
         (1 - q_lee) * (yq_u_lee - theta1_u_lee)^2 / (ESD * q_lee) + ((yq_u_lee - theta1_u_lee) / q_lee)^2 * V_q + var_theta0_lee
       se_tau_u_lee <- sqrt(var_tau_u_lee / nrow(dat_final))
-    }else if (direction == 0){
-      if (message == TRUE){
-        cat("S(0) > S(1)", "\n")
-      }
+    }else{
+      cat("S(0) > S(1)", "\n")
       all_ys <- unlist(dat_final[dat_final[, D] == 0 & dat_final[, S] == 1, Y])
       all_ys_uni <- unlist(unique(dat_final[dat_final[, D] == 0 & dat_final[, S] == 1, Y]))
       all_ys_uni <- sort(all_ys_uni)
@@ -663,8 +657,6 @@ LBounds_cont <- function(dat_final, Y, X, S, D, W, Pscore,
       var_tau_l_lee <- (sum((1-dat_final[, D])*dat_final[, S]*dat_final[, W]*as.numeric(dat_final[, Y] >= yq_u_lee)*as.numeric(dat_final[, Y]^2), na.rm = 1) / sum((1-dat_final[, D])*dat_final[, S]*dat_final[, W]*as.numeric(dat_final[, Y] >= yq_u_lee), na.rm = 1) - theta0_u_lee^2) / (ESD * q_lee) +
         (1 - q_lee) * (yq_u_lee - theta0_u_lee)^2 / (ESD * q_lee) + ((yq_u_lee - theta0_u_lee) / q_lee)^2 * V_q + var_theta1_lee
       se_tau_l_lee <- sqrt(var_tau_l_lee / nrow(dat_final))
-    }else{
-      stop("Direction can only be 0 or 1")
     }
   }
   result <- list("tau_l_est_lee" = tau_l_lee,
