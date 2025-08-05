@@ -1,7 +1,7 @@
 #' @export
-CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
+CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL, Z = NULL,
                  splitting = FALSE, cv_fold = 5, trim_l = 0, trim_u = 1,
-                 aggBounds = TRUE, IM_cv = TRUE, alpha = 0.05, cBounds = FALSE, X_moderator = NULL,
+                 aggBounds = TRUE, IM_cv = TRUE, alpha = 0.05, cBounds = FALSE, M = NULL,
                  LeeBounds = FALSE, cond_mono = TRUE){
 
   if (is.null(data)){
@@ -21,6 +21,17 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
 
   if (is.null(Pscore)){
     cat("Propensity scores are not specified and will be estimated using X.", "\n")
+    if (is.null(Z)){
+      Z <- X
+      cat("Confounders are not specified. Propensity scores will be estimated using X.")
+      P <- dim(data[, X])[2]
+      for (pp in 1:P){
+        Z_p <- data[, Z[pp]]
+        if (!is.numeric(Z_p)){
+          stop("Non-numeric confounder")
+        }
+      }
+    }
   }
 
   if (is.null(W)){
@@ -63,8 +74,11 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
     for (pp in 1:P){
       X_p <- data[, X[pp]]
       if (!is.numeric(X_p)){
-        stop("Non-numeric covariates")
+        stop("Non-numeric covariate")
       }
+    }
+    if (!is.null(Z)){
+      X <- unique(c(X, Z)) # always use all covariates
     }
   }
 
@@ -100,7 +114,7 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
   result <- list()
   if (bo == 1){
     if (LeeBounds){
-      lee.result <- LBounds_binary(dat_final, seed = seed, Y, X, S, D, W, Pscore,
+      lee.result <- LBounds_binary(dat_final, seed = seed, Y, X, S, D, W, Pscore, Z,
                                    cond_mono)
       if (IM_cv){
         IM_cv_lee <- IM_cv(lee.result[["tau_l_est_lee"]], lee.result[["tau_u_est_lee"]],
@@ -122,7 +136,7 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
     }
 
     if (aggBounds){
-      agg.result <- aggBounds_binary(dat_final = dat_final, seed = seed, Y, X, S, D, W, Pscore,
+      agg.result <- aggBounds_binary(dat_final = dat_final, seed = seed, Y, X, S, D, W, Pscore, Z,
                                      splitting = splitting, cv_fold = cv_fold, trim_l, trim_u)
       if (IM_cv){
         IM_cv_agg <- IM_cv(agg.result[["tau_l_est_avg"]], agg.result[["tau_u_est_avg"]],
@@ -144,7 +158,7 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
     }
   }else{
     if (LeeBounds){
-      lee.result <- LBounds_cont(dat_final, seed = seed, Y, X, S, D, W, Pscore,
+      lee.result <- LBounds_cont(dat_final, seed = seed, Y, X, S, D, W, Pscore, Z,
                                  cond_mono)
       if (IM_cv){
         IM_cv_lee <- IM_cv(lee.result[["tau_l_est_lee"]], lee.result[["tau_u_est_lee"]],
@@ -166,7 +180,7 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
     }
 
     if (aggBounds){
-      agg.result <- aggBounds_cont(dat_final, seed = seed, Y, X, S, D, W, Pscore,
+      agg.result <- aggBounds_cont(dat_final, seed = seed, Y, X, S, D, W, Pscore, Z,
                                    splitting = splitting,
                                    cv_fold = cv_fold, trim_l, trim_u)
       if (IM_cv){
@@ -190,12 +204,31 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
     }
 
     if (cBounds){
-      if (is.null(X_moderator)){
+      if (is.null(M)){
         stop("No moderator is provided.")
+      }else{
+        X_noM <- setdiff(X, M)
+        X_avg <- rep(NA, length(X_noM))
+        for (pp in 1:length(X_noM)){
+          one_X <- dat_final[, X_noM[pp]]
+          unique_X <- unique(na.omit(one_X))
+          if (length(unique_X) <= 2){
+            X_avg[pp] <- unique_X[which.max(tabulate(match(one_X, unique_X)))]
+          }else{
+            X_avg[pp] <- mean(one_X, na.rm = TRUE)
+          }
+        }
+
+        M_evals <- quantile(dat_final[, M], seq(0.05, 0.95, 0.05))
+        if (length(unique(dat_final[, M])) < 20){
+          M_evals <- unique(dat_final[, M])
+        }
+        X_moderator <- matrix(rep(X_avg, length(M_evals)), length(X_avg), length(M_evals))
+        X_moderator <- rbind(M_evals, X_moderator)
+        X_moderator <- t(X_moderator)
       }
-      cond.result <- condBounds_cont(dat_final, seed = seed, Y, X, S, D, W, Pscore,
-                                     X_moderator, splitting = splitting,
-                                     cv_fold = cv_fold)
+      cond.result <- condBounds_cont(dat_final, seed = seed, Y, X, S, D, W, Pscore, Z,
+                                     X_moderator, splitting = splitting, cv_fold = cv_fold)
       # if (IM_cv){
       #   IM_cv_cond <- rep(NA, nrow(X_moderator))
       #   for (rr in 1:nrow(X_moderator)){
@@ -214,7 +247,7 @@ CTTB <- function(data, seed = NULL, Y, D, S, X = NULL, W = NULL, Pscore = NULL,
       # }
       cond_dat$Method <- rep(c("Conditional Bounds"), 2*nrow(X_moderator))
       cond_dat$Type <- rep(c("Lower", "Upper"), each = nrow(X_moderator))
-      colnames(X_moderator) <- c("Const", paste0("X", seq(1:(ncol(X_moderator) - 1))))
+      colnames(X_moderator) <- c(paste0("M", seq(1:ncol(X_moderator))))
       cond_dat <- cbind(cond_dat, X_moderator)
 
       result[["cB"]] <- cond_dat
@@ -283,7 +316,7 @@ summary.CTTB <- function(result, ...) {
 }
 
 #' @export
-plot.CTTB <- function(result, type = "aggregated", moderator_plot = 1, ...) {
+plot.CTTB <- function(result, type = "aggregated", ...) {
   if (type == "aggregated"){
     if (result[["parameters"]]["LeeBounds"]){
       p.data <- result[["TB"]]
@@ -303,7 +336,7 @@ plot.CTTB <- function(result, type = "aggregated", moderator_plot = 1, ...) {
       theme_bw() +
       geom_errorbar(aes(Method, ymin=CI95_lower, ymax=CI95_upper), width=0.2, position=pd, linetype = "dashed") +
       xlab('') + ylab('') +
-      theme(plot.title = element_text(hjust = 0.5), text = element_text(size=25), axis.text.x = element_text(angle = 0), legend.position = "top") +
+      theme(plot.title = element_text(hjust = 0.5), text = element_text(size=12), axis.text.x = element_text(angle = 0), legend.position = "top") +
       ylab("Estimates") + coord_flip()
 
     y_min <- min(p.data$CI95_upper, na.rm = TRUE)
@@ -325,20 +358,20 @@ plot.CTTB <- function(result, type = "aggregated", moderator_plot = 1, ...) {
   }else if (type == "conditional"){
     if (result[["parameters"]]["cBounds"]){
       p.data.m <- result[["cB"]]
+      moderator_name <- "M1"
       p.data.m$Type <- factor(p.data.m$Type, levels = c("Upper", "Lower"),
                               labels = c("Upper Bound", "Lower Bound"))
-      moderator_name <- sym(paste0("X", moderator_plot))
-      if (var(p.data.m[, paste0("X", moderator_plot)]) == 0){
+      if (var(p.data.m[, moderator_name]) == 0){
         stop("No variation in the moderator. Plots cannot be produced.")
       }
-      coefs_p <- ggplot(p.data.m, aes(x = !!moderator_name, y = Estimate, group = Type)) +
+      coefs_p <- ggplot(p.data.m, aes(x = !!sym(moderator_name), y = Estimate, group = Type)) +
         geom_line(aes(y = CI95_lower, linetype = Type, color = Type), size = 1) +
         geom_line(aes(y = CI95_upper, linetype = Type, color = Type), size = 1) +
         geom_point(aes(color = Type), size = 3) +
         labs(x = "Moderator", y = "Conditional Bounds", color = NULL, linetype = NULL) +
         scale_color_manual(values = c("black", "gray")) +
         scale_linetype_manual(values = c("dashed", "dashed")) +
-        theme_bw(base_size = 16) +
+        theme_bw(base_size = 12) +
         theme(legend.position = "top")
     }
     return(coefs_p)

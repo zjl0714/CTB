@@ -1,6 +1,6 @@
 # functions for continuous outcomes
 
-aggBounds_cont <- function(dat_final, seed = NULL, Y, X, S, D, W, Pscore,
+aggBounds_cont <- function(dat_final, seed, Y, X, S, D, W, Pscore, Z,
                            splitting = F, cv_fold = cv_fold, trim_l, trim_u){
 
   scores_l_k <- scores_u_k <- qar_k <- Ps_k <- c()
@@ -18,15 +18,13 @@ aggBounds_cont <- function(dat_final, seed = NULL, Y, X, S, D, W, Pscore,
     S_eval_k <- dat.s2[, S]
     W_eval_k <- dat.s2[, W]
     if (is.null(Pscore)){
+      Z_eval_k <- dat.s2[, Z]
       s_index <- sample(nrow(dat.s1), nrow(dat.s1)/2)
       dat.s3 <- dat.s1[s_index, ]
       dat.s1 <- dat.s1[-s_index, ]
-      if (is.null(seed)){
-        ps <- probability_forest(as.matrix(dat.s3[, X]), as.factor(dat.s3[, D]), sample.weights = dat.s3[, W])
-      }else{
-        ps <- probability_forest(as.matrix(dat.s3[, X]), as.factor(dat.s3[, D]), sample.weights = dat.s3[, W], seed = seed)
-      }
-      Ps_pred <- predict(ps, newdata = (as.matrix(X_eval_k)))
+      ps <- probability_forest(as.matrix(dat.s3[, Z]), as.factor(dat.s3[, D]), sample.weights = dat.s3[, W], seed = seed)
+
+      Ps_pred <- predict(ps, newdata = (as.matrix(Z_eval_k)))
       Ps_eval_k <- Ps_pred$predictions[, 2]
       Ps_eval_k[Ps_eval_k <= trim_l] <- trim_l
       Ps_eval_k[Ps_eval_k >= trim_u] <- trim_u
@@ -37,13 +35,8 @@ aggBounds_cont <- function(dat_final, seed = NULL, Y, X, S, D, W, Pscore,
     dat.s1.0 <- dat.s1[dat.s1[, D] == 0, ]
     dat.s1.1 <- dat.s1[dat.s1[, D] == 1, ]
 
-    if (is.null(seed)){
-      pf0 <- probability_forest(as.matrix(dat.s1.0[, X]), as.factor(dat.s1.0[, S]), sample.weights = dat.s1.0[, W])
-      pf1 <- probability_forest(as.matrix(dat.s1.1[, X]), as.factor(dat.s1.1[, S]), sample.weights = dat.s1.1[, W])
-    }else{
-      pf0 <- probability_forest(as.matrix(dat.s1.0[, X]), as.factor(dat.s1.0[, S]), sample.weights = dat.s1.0[, W], seed = seed)
-      pf1 <- probability_forest(as.matrix(dat.s1.1[, X]), as.factor(dat.s1.1[, S]), sample.weights = dat.s1.1[, W], seed = seed)
-    }
+    pf0 <- probability_forest(as.matrix(dat.s1.0[, X]), as.factor(dat.s1.0[, S]), sample.weights = dat.s1.0[, W], seed = seed)
+    pf1 <- probability_forest(as.matrix(dat.s1.1[, X]), as.factor(dat.s1.1[, S]), sample.weights = dat.s1.1[, W], seed = seed)
 
     pf0_pred <- predict(pf0, newdata = (as.matrix(X_eval_k)))
     pf1_pred <- predict(pf1, newdata = (as.matrix(X_eval_k)))
@@ -66,19 +59,11 @@ aggBounds_cont <- function(dat_final, seed = NULL, Y, X, S, D, W, Pscore,
     one_q_l_ordered <- one_q_l[one_q_l_order]
     one_q_u_ordered <- one_q_u[one_q_u_order]
 
-    if (is.null(seed)){
-      q1.forest.lower <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], quantiles = one_q_l_ordered, regression.splitting = splitting)
-      q1.forest.upper <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], quantiles = one_q_u_ordered, regression.splitting = splitting)
+    q1.forest.lower <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], seed = seed, quantiles = one_q_l_ordered, regression.splitting = splitting)
+    q1.forest.upper <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], seed = seed, quantiles = one_q_u_ordered, regression.splitting = splitting)
 
-      q0.forest.lower <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], quantiles = one_q_l_ordered, regression.splitting = splitting)
-      q0.forest.upper <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], quantiles = one_q_u_ordered, regression.splitting = splitting)
-    }else{
-      q1.forest.lower <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], seed = seed, quantiles = one_q_l_ordered, regression.splitting = splitting)
-      q1.forest.upper <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], seed = seed, quantiles = one_q_u_ordered, regression.splitting = splitting)
-
-      q0.forest.lower <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], seed = seed, quantiles = one_q_l_ordered, regression.splitting = splitting)
-      q0.forest.upper <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], seed = seed, quantiles = one_q_u_ordered, regression.splitting = splitting)
-    }
+    q0.forest.lower <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], seed = seed, quantiles = one_q_l_ordered, regression.splitting = splitting)
+    q0.forest.upper <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], seed = seed, quantiles = one_q_u_ordered, regression.splitting = splitting)
 
     q1.forest.lower.pred <- predict(q1.forest.lower, newdata = (as.matrix(X_eval_k)), quantiles = one_q_l_ordered)
     q1.forest.upper.pred <- predict(q1.forest.upper, newdata = (as.matrix(X_eval_k)), quantiles = one_q_u_ordered)
@@ -263,8 +248,8 @@ aggBounds_cont <- function(dat_final, seed = NULL, Y, X, S, D, W, Pscore,
 }
 
 
-condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
-                            X_moderator, splitting = F,
+condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore, Z,
+                            X_moderator, splitting = FALSE,
                             cv_fold = cv_fold){
 
   tau_m <- se_tau_m <- tau_l_m <- se_tau_l_m <- tau_u_m <- se_tau_u_m <- matrix(NA, nrow(X_moderator), cv_fold)
@@ -279,12 +264,9 @@ condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
     S_eval_k <- dat.s2[, S]
     W_eval_k <- dat.s2[, W]
     if (is.null(Pscore)){
-      if (is.null(seed)){
-        ps <- probability_forest(as.matrix(dat.s1[, X]), as.factor(dat.s1[, D]), sample.weights = dat.s1[, W])
-      }else{
-        ps <- probability_forest(as.matrix(dat.s1[, X]), as.factor(dat.s1[, D]), sample.weights = dat.s1[, W], seed = seed)
-      }
-      Ps_pred <- predict(ps, newdata = (as.matrix(X_eval_k)))
+      Z_eval_k <- dat.s2[, Z]
+      ps <- probability_forest(as.matrix(dat.s1[, Z]), as.factor(dat.s1[, D]), sample.weights = dat.s1[, W], seed = seed)
+      Ps_pred <- predict(ps, newdata = (as.matrix(Z_eval_k)))
       Ps_eval_k <- Ps_pred$predictions[, 2]
     }else{
       Ps_eval_k <- dat.s2[, Pscore]
@@ -293,13 +275,8 @@ condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
     dat.s1.0 <- dat.s1[dat.s1[, D] == 0, ]
     dat.s1.1 <- dat.s1[dat.s1[, D] == 1, ]
 
-    if (is.null(seed)){
-      pf0 <- probability_forest(as.matrix(dat.s1.0[, X]), as.factor(dat.s1.0[, S]))
-      pf1 <- probability_forest(as.matrix(dat.s1.1[, X]), as.factor(dat.s1.1[, S]))
-    }else{
-      pf0 <- probability_forest(as.matrix(dat.s1.0[, X]), as.factor(dat.s1.0[, S]), seed = seed)
-      pf1 <- probability_forest(as.matrix(dat.s1.1[, X]), as.factor(dat.s1.1[, S]), seed = seed)
-    }
+    pf0 <- probability_forest(as.matrix(dat.s1.0[, X]), as.factor(dat.s1.0[, S]), seed = seed)
+    pf1 <- probability_forest(as.matrix(dat.s1.1[, X]), as.factor(dat.s1.1[, S]), seed = seed)
 
     pf0_pred_m <- predict(pf0, newdata = (as.matrix(X_moderator)), estimate.variance = 1)
     pf1_pred_m <- predict(pf1, newdata = (as.matrix(X_moderator)), estimate.variance = 1)
@@ -323,16 +300,11 @@ condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
     one_q_l_ordered_m <- one_q_l_m[one_q_l_order_m]
     one_q_u_ordered_m <- one_q_u_m[one_q_u_order_m]
 
-    if (is.null(seed)){
-      q1.forest.lower.m <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], quantiles = one_q_l_ordered_m, regression.splitting = 0)
-      q1.forest.upper.m <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], quantiles = one_q_u_ordered_m, regression.splitting = 0)
-    }else{
-      q1.forest.lower.m <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], seed = seed, quantiles = one_q_l_ordered_m, regression.splitting = 0)
-      q1.forest.upper.m <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], seed = seed, quantiles = one_q_u_ordered_m, regression.splitting = 0)
-    }
+    q1.forest.lower.m <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], seed = seed, quantiles = one_q_l_ordered_m, regression.splitting = splitting)
+    q1.forest.upper.m <- quantile_forest(as.matrix(dat.s1.1[dat.s1.1[, S] == 1, X]), dat.s1.1[dat.s1.1[, S] == 1, Y], seed = seed, quantiles = one_q_u_ordered_m, regression.splitting = splitting)
+
     q1.forest.lower.pred.m <- predict(q1.forest.lower.m, newdata = (as.matrix(X_moderator)), quantiles = one_q_l_ordered_m)
     q1.forest.upper.pred.m <- predict(q1.forest.upper.m, newdata = (as.matrix(X_moderator)), quantiles = one_q_u_ordered_m)
-
 
     yq_l_help_m <- sapply(1:length(one_q_l_m), function(tt){
       return(q1.forest.lower.pred.m$predictions[tt, which(one_q_l_order_m==tt)])
@@ -341,13 +313,9 @@ condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
       return(q1.forest.upper.pred.m$predictions[tt, which(one_q_u_order_m==tt)])
     })
 
-    if (is.null(seed)){
-      q0.forest.lower.m <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], quantiles = one_q_l_ordered_m, regression.splitting = 0)
-      q0.forest.upper.m <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], quantiles = one_q_u_ordered_m, regression.splitting = 0)
-    }else{
-      q0.forest.lower.m <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], seed = seed, quantiles = one_q_l_ordered_m, regression.splitting = 0)
-      q0.forest.upper.m <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], seed = seed, quantiles = one_q_u_ordered_m, regression.splitting = 0)
-    }
+    q0.forest.lower.m <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], seed = seed, quantiles = one_q_l_ordered_m, regression.splitting = splitting)
+    q0.forest.upper.m <- quantile_forest(as.matrix(dat.s1.0[dat.s1.0[, S] == 1, X]), dat.s1.0[dat.s1.0[, S] == 1, Y], seed = seed, quantiles = one_q_u_ordered_m, regression.splitting = splitting)
+
     q0.forest.lower.pred.m <- predict(q0.forest.lower.m, newdata = (as.matrix(X_moderator)), quantiles = one_q_l_ordered_m)
     q0.forest.upper.pred.m <- predict(q0.forest.upper.m, newdata = (as.matrix(X_moderator)), quantiles = one_q_u_ordered_m)
 
@@ -361,35 +329,21 @@ condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
     yq_l_m <- directions_m*yq_l_help_m + (1-directions_m)*yq_l_hurt_m
     yq_u_m <- directions_m*yq_u_help_m + (1-directions_m)*yq_u_hurt_m
 
-    if (is.null(seed)){
-      rf0_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, X]), Y = dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, Y])
-    }else{
-      rf0_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, X]), Y = dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, Y], seed = seed)
-    }
+    rf0_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, X]), Y = dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, Y], seed = seed)
     pred0_m <- predict(rf0_m, newdata = as.matrix(X_moderator), estimate.variance = 1)
 
     theta0_m <- pred0_m[, 1]
     se_theta0_m <- sqrt(pred0_m[, 2])
 
-    if (is.null(seed)){
-      rf1_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, X]), Y = dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, Y])
-    }else{
-      rf1_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, X]), Y = dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, Y], seed = seed)
-    }
+    rf1_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, X]), Y = dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, Y], seed = seed)
     pred1_m <- predict(rf1_m, newdata = as.matrix(X_moderator), estimate.variance = 1)
 
     theta1_m <- pred1_m[, 1]
     se_theta1_m <- sqrt(pred1_m[, 2])
 
-    if (is.null(seed)){
-      cf_m <- causal_forest(X = as.matrix(dat.s2[dat.s2[, S] == 1, X]),
-                            Y = dat.s2[dat.s2[, S] == 1, Y],
-                            W = dat.s2[dat.s2[, S] == 1, D])
-    }else{
-      cf_m <- causal_forest(X = as.matrix(dat.s2[dat.s2[, S] == 1, X]),
-                            Y = dat.s2[dat.s2[, S] == 1, Y],
-                            W = dat.s2[dat.s2[, S] == 1, D], seed = seed)
-    }
+    cf_m <- causal_forest(X = as.matrix(dat.s2[dat.s2[, S] == 1, X]),
+                          Y = dat.s2[dat.s2[, S] == 1, Y],
+                          W = dat.s2[dat.s2[, S] == 1, D], seed = seed)
 
     pred_m <- predict(cf_m, newdata = as.matrix(X_moderator), estimate.variance = 1)
     tau_m[, k] <- pred_m[, 1]
@@ -398,13 +352,8 @@ condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
     for (m in 1:nrow(X_moderator)){
       Y1.trim.lower <- (dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, Y] - yq_l_m[m]) * (dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, Y] <= yq_l_m[m])
       Y1.trim.upper <- (dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, Y] - yq_u_m[m]) * (dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, Y] >= yq_u_m[m])
-      if (is.null(seed)){
-        rf1_l_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, X]), Y = Y1.trim.lower)
-        rf1_u_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, X]), Y = Y1.trim.upper)
-      }else{
-        rf1_l_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, X]), Y = Y1.trim.lower, seed = seed)
-        rf1_u_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, X]), Y = Y1.trim.upper, seed = seed)
-      }
+      rf1_l_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, X]), Y = Y1.trim.lower, seed = seed)
+      rf1_u_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 1 & dat.s2[, S] == 1, X]), Y = Y1.trim.upper, seed = seed)
       pred1_l_m <- predict(rf1_l_m, newdata = as.matrix(X_moderator), estimate.variance = 1)
       pred1_u_m <- predict(rf1_u_m, newdata = as.matrix(X_moderator), estimate.variance = 1)
       theta1_l_m <- pred1_l_m[m, 1] / one_q_l_m[m] + yq_l_m[m]
@@ -415,13 +364,8 @@ condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
 
       Y0.trim.lower <- (dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, Y] - yq_l_m[m]) * (dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, Y] <= yq_l_m[m])
       Y0.trim.upper <- (dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, Y] - yq_u_m[m]) * (dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, Y] >= yq_u_m[m])
-      if (is.null(seed)){
-        rf0_l_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, X]), Y = Y0.trim.lower)
-        rf0_u_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, X]), Y = Y0.trim.upper)
-      }else{
-        rf0_l_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, X]), Y = Y0.trim.lower, seed = seed)
-        rf0_u_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, X]), Y = Y0.trim.upper, seed = seed)
-      }
+      rf0_l_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, X]), Y = Y0.trim.lower, seed = seed)
+      rf0_u_m <- regression_forest(as.matrix(dat.s2[dat.s2[, D] == 0 & dat.s2[, S] == 1, X]), Y = Y0.trim.upper, seed = seed)
       pred0_l_m <- predict(rf0_l_m, newdata = as.matrix(X_moderator), estimate.variance = 1)
       pred0_u_m <- predict(rf0_u_m, newdata = as.matrix(X_moderator), estimate.variance = 1)
       theta0_l_m <- pred0_l_m[m, 1] / one_q_l_m[m] + yq_l_m[m]
@@ -451,8 +395,16 @@ condBounds_cont <- function(dat_final, seed=NULL, Y, X, S, D, W, Pscore,
   return(result)
 }
 
-LBounds_cont <- function(dat_final, seed = NULL, Y, X, S, D, W, Pscore,
+LBounds_cont <- function(dat_final, seed, Y, X, S, D, W, Pscore, Z,
                          cond_mono = FALSE){
+  if (is.null(Pscore)){
+    ps_fit <- glm(as.formula(paste(D, "~", paste(Z, collapse = "+"))), data = dat_final, weights = dat_final[, W], family = "binomial")
+    Ps <- predict(ps_fit, type = "response")
+  }else{
+    Ps <- dat_final[, Pscore]
+  }
+  Ps_W <- dat_final[, D] / Ps + (1 - dat_final[, D]) / (1 - Ps)
+  dat_final[, W] <- dat_final[, W] * Ps_W
 
   if (cond_mono){
     pf0 <- probability_forest(X = as.matrix(dat_final[dat_final[, D] == 0, X]), Y = as.factor(unlist(dat_final[dat_final[, D] == 0, S])), sample.weights = dat_final[dat_final[, D] == 0, W], seed = seed)

@@ -4,9 +4,9 @@
 \title{Covariate-tightened trimming bounds}
 \description{Estimate aggregated and conditional trimming bounds using information from covariates, based on the algorithm in Samii, Wang, and Zhou (2025)}
 \usage{CTTB(data, seed = NULL, Y, D, S, X = NULL, W = NULL,
-Pscore = NULL, splitting = FALSE, cv_fold = 5,
+Pscore = NULL, Z = NULL, splitting = FALSE, cv_fold = 5,
 trim_l = 0, trim_u = 1, aggBounds = TRUE, IM_cv = TRUE,
-alpha = 0.05, cBounds = FALSE, X_moderator = NULL, LeeBounds = FALSE,
+alpha = 0.05, cBounds = FALSE, M = NULL, LeeBounds = FALSE,
 cond_mono = TRUE)
 }
 \arguments{
@@ -20,13 +20,15 @@ cond_mono = TRUE)
 
 \item{S}{name of the variable indicating the response. This variable should be dichotomous (0 and 1) in data.}
 
-\item{X}{names of the covariates. These variables should be continuous in data.}
+\item{X}{names of the covariates. These variables should be numeric in data.}
 
 \item{W}{name of the variable indicating the sampling weights. If unspecified, units will be equally weighted.}
 
 \item{Pscore}{name of the variable indicating the probability of being treated. If unspecified, the probability will be estimated from data.}
 
-\item{splitting}{a logical flag indicating whether to use regression splitting.}
+\item{Z}{names of the confounders. These variables should be numeric in data. If neither \code{Pscore} nor \code{Z} is specified, \code{Z} will be set to \code{X}.}
+
+\item{splitting}{a logical flag indicating whether to use regression splitting when estimating conditional quantiles. Setting it to TRUE corresponds to the approach to quantile forests from Meinshausen (2006). Default is \code{splitting = FALSE}.}
 
 \item{cv_fold}{an integer specifying the number of folds used in cross-validation. The default value is 5.}
 
@@ -42,7 +44,7 @@ cond_mono = TRUE)
 
 \item{cBounds}{a logical flag indicating whether to calculate the aggregated bounds. Default is \code{cBounds = TRUE}.}
 
-\item{X_moderator}{covariates values on which the conditional bounds are estimated. If unspecified, the conditional bounds will not be estimated.}
+\item{M}{name of the moderator on which the conditional bounds are estimated. If unspecified, the conditional bounds will not be estimated.}
 
 \item{LeeBound}{a logical flag indicating whether to calculate the basic trimming bounds (Lee bounds). Default is \code{LeeBounds = FALSE}.}
 
