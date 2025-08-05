@@ -231,7 +231,7 @@ plot(result, type = "conditional")
 We now demonstrate the method's performance using empirical studies analyzed in @samii2023generalizing.
 
 ## Santoro and Broockman (2022)
-@kalla2022outside studies the effect of talking with an outpartisan, someone from a different party, on attitude toward the other parties. The subjects were randomly assigned into either the treatment group ($D_i = 1$), in which they were informed that the partner would be an outpartisan, or the control group ($D_i = 0$), in which they received no extra information. $S_i\in(1,0)$ indicates whether the subjects initiate the online conversation and finish the questionnaire. Always-responders in this study refer to those who will start the conversation regardless the partisanship of their partners.
+@santoro2022promise conduct an online experiment to examine the effect of talking with an outpartisan---someone from a different political party---on attitudes toward the opposing parties. Subjects were randomly assigned to either the treatment group ($D_i = 1$), in which they were informed that their partner would be an outpartisan, or the control group ($D_i = 0$), in which no such information was provided. $S_i \in {0, 1}$ indicates whether a subject initiated the online conversation and completed the questionnaire. Always-responders in this study are those who would engage in the conversation regardless of their partner's partisanship.
 
 We focus on the outcome of "warmth toward outpartisan voters" measured by a feeling thermometer and the following covariates: age, gender,
 race, education level, party identification, and the outcome's pre-treatment level. We first estimate the aggregated bounds, using both TB and CTTB. 
@@ -287,6 +287,9 @@ p
 
 
 ## Blattman and Annan (2010)
+@blattman2010consequences is an observational study examining the long-term effects of being abducted into a rebel organization as a youth ($D_i$) in Northern Uganda. The authors surveyed a random sample of households to measure outcomes such as education, psychological distress, and wages among former abductees. Some selected respondents never returned from abduction, while others could not be located by the research team. We focus on psychological distress ($Y_i$) as the outcome of interest and use $S_i$ to indicate whether a respondent was successfully interviewed. Covariates are drawn from the original analysis and include only variables without missing values, such as the respondent's age and location and the household's wealth level.
+
+Results from both CTTB and TB are reported below. We apply the original sampling weights ($W_i$) and use 10-fold cross-validation. Estimates of the conditional trimming probability are truncated at 0.1 from below and 0.9 from above. The lower bound estimate is significantly greater than zero, suggesting that abduction has a persistent impact on psychological distress.
 ```{r BA 2010 main, message = FALSE, warning = FALSE}
 rm(list=ls())
 
@@ -316,6 +319,9 @@ p <- plot(result)
 p
 ```
  
+<!-- # Kalla and Broockman (2022)  -->
+<!-- @kalla2022outside is -->
+
 ---
 
 # Reference
