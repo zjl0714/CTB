@@ -1,0 +1,4 @@
+S3method(plot,CTTB)
+S3method(print,CTTB)
+S3method(summary,CTTB)
+export(CTTB)

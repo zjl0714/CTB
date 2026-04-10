@@ -1,0 +1,5 @@
+name	user	system	elapsed
+CTTB	0.000	0.001	0.001	
+plot.CTTB	0	0	0	
+print.CTTB	0	0	0	
+summary.CTTB	0.000	0.000	0.001	

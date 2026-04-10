@@ -1,0 +1,25 @@
+Package: CTTB
+Type: Package
+Title: Estimate Aggregated and Conditional Trimming Bounds Using
+        Covariates
+Version: 0.1.0
+Authors@R: c(
+    person(given = "Cyrus", family = "Samii", email = "cds2083@nyu.edu", role = "aut"),
+    person(given = "Ye", family = "Wang", email = "yewang@unc.edu", role = c("aut", "cre")),
+    person(given = c("Junlong", "Aaron"), family = "Zhou", email = "jlzhou@nyu.edu", role = "aut")
+  )
+Description: Tools to estimate covariate-tightened trimming bounds for
+    treatment effects with endogenous outcome missingness or sample selection.
+    The methods extend Lee's trimming bounds by using generalized random
+    forests to incorporate high-dimensional covariates, estimate conditional
+    bounds, and aggregate them into tighter identified sets.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 3.5.0)
+Imports: ggplot2, grf, rlang
+NeedsCompilation: no
+Packaged: 2026-03-24 04:36:23 UTC; yewang
+Author: Cyrus Samii [aut],
+  Ye Wang [aut, cre],
+  Junlong Aaron Zhou [aut]
+Maintainer: Ye Wang <yewang@unc.edu>

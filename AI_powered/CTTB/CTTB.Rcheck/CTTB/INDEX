@@ -1,0 +1,8 @@
+CTTB                    Covariate-tightened trimming bounds
+CTTB-package            CTTB: Covariate-Tightened Trimming Bounds
+blattman_replic         Replication Data Included with CTTB
+plot.CTTB               Plot CTTB results
+print.CTTB              Print a CTTB object
+santoro_replic          Replication Data Included with CTTB
+simData                 Simulated data objects bundled with CTTB
+summary.CTTB            Summarize a CTTB object

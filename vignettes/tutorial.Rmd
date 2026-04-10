@@ -1,5 +1,5 @@
 ---
-title: 'Tutorial'
+title: 'Tutorial for CTTB: An R Package for Estimating Covariate-Tightened Trimming Bounds'
 output:
   rmarkdown::html_vignette:
     toc: false
@@ -237,6 +237,7 @@ We focus on the outcome of "warmth toward outpartisan voters" measured by a feel
 race, education level, party identification, and the outcome's pre-treatment level. We first estimate the aggregated bounds, using both TB and CTTB. 
 ```{r santoro2022 result, message = FALSE, warning = FALSE}
 rm(list=ls())
+RNGkind("L'Ecuyer-CMRG")
 
 seed <- 2023
 set.seed(seed)
@@ -262,7 +263,7 @@ p <- plot(result)
 p
 ```
 
-The results are shown in the plot above. The identified set from the CTTB method is again narrower than that from the TB method. The lower bound is significantly greater than zero at the 5\% level, suggesting that the LATE for the always-responders is positive. In the plot below, we compare the estimated bounds with the OLS estimate. The OLS estimate falls outside the identified set produced by CTTB in this case.
+The results are shown in the plot above. The identified set from the CTTB method is again narrower than that from the TB method. The lower end of the 95\% confidence interval for the LATE estimate is above zero, suggesting that the LATE for the always-responders is positive. In the plot below, we compare the estimated bounds with the OLS estimate. The OLS estimate falls outside the identified set produced by CTTB in this case.
 ```{r santoro2022 result3 , message = FALSE, warning = FALSE}
 # estimate the ate using observations that select into the sample
 library(sandwich)
@@ -277,7 +278,7 @@ p <- p + geom_point(data = p.data, aes(x = Method, y = Estimate), shape = 17, si
   geom_errorbar(data = p.data, aes(x = Method, ymin = CI95_lower, ymax = CI95_upper), color = "grey5", width = 0.2)
 p
 ```
-Next, we estimate the conditional bounds using age as the moderator. The results suggest that the effect may be larger among younger subjects.
+Next, we estimate the conditional bounds using age as the moderator. The results imply that the effect may be larger among younger subjects.
 ```{r santoro 2022 moderator, message = FALSE, warning = FALSE}
 result <- CTTB(data = dat, seed = seed, Y = Y, D = D, S = S, X = X, Pscore = "Ps", aggBounds = FALSE, cBounds = TRUE, M = "age")
 
@@ -289,9 +290,10 @@ p
 ## Blattman and Annan (2010)
 @blattman2010consequences is an observational study examining the long-term effects of being abducted into a rebel organization as a youth ($D_i$) in Northern Uganda. The authors surveyed a random sample of households to measure outcomes such as education, psychological distress, and wages among former abductees. Some selected respondents never returned from abduction, while others could not be located by the research team. We focus on psychological distress ($Y_i$) as the outcome of interest and use $S_i$ to indicate whether a respondent was successfully interviewed. Covariates are drawn from the original analysis and include only variables without missing values, such as the respondent's age and location and the household's wealth level.
 
-Results from both CTTB and TB are reported below. We apply the original sampling weights ($W_i$) and use 10-fold cross-validation. Estimates of the conditional trimming probability are truncated at 0.1 from below and 0.9 from above. The lower bound estimate is significantly greater than zero, suggesting that abduction has a persistent impact on psychological distress.
+Results from both CTTB and TB are reported below. We apply the original sampling weights ($W_i$), and estimates of the conditional trimming probability are truncated at 0.1 from below and 0.9 from above. The lower bound estimate is significantly greater than zero, suggesting that abduction has a persistent impact on psychological distress.
 ```{r BA 2010 main, message = FALSE, warning = FALSE}
 rm(list=ls())
+RNGkind("L'Ecuyer-CMRG")
 
 seed <- 2023
 set.seed(seed)
@@ -310,7 +312,7 @@ ACG <- c(AC, "G1_18_21", "G1_22_25", "G2_14_17", "G2_22_25", "G3_14_17", "G3_18_
          "G5_14_17", "G5_18_21", "G5_22_25", "G6_14_17", "G6_18_21", "G6_22_25", "G7_14_17", "G7_18_21", "G7_22_25", "G8_14_17", "G8_18_21", "G8_22_25")
 X <- c("hh_fthr_frm", "hh_size96", "hh_land", "hh_cattle", "hh_stock", "hh_plow", "age", ACG)
 
-result <- CTTB(data = dat, seed = seed, Y = Y, D = D, S = S, X = X, W = W, cv_fold = 10, LeeBounds = TRUE, trim_l = 0.05, trim_u = 0.95)
+result <- CTTB(data = dat, seed = seed, Y = Y, D = D, S = S, X = X, W = W, cv_fold = 5, LeeBounds = TRUE, trim_l = 0.05, trim_u = 0.95)
 
 summary(result)
 ```

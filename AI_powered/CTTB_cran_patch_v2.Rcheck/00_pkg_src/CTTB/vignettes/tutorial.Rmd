@@ -1,0 +1,51 @@
+---
+title: "Tutorial for CTTB"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tutorial for CTTB}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+This vignette gives a lightweight introduction to the main interface of
+`CTTB`. The package estimates Lee-style trimming bounds and
+covariate-tightened trimming bounds for treatment effects under endogenous
+sample selection.
+
+## Main function
+
+The main entry point is `CTTB()`.
+
+```{r eval = FALSE}
+out <- CTTB(
+  data = your_data,
+  Y = "Y",
+  D = "D",
+  S = "S",
+  X = c("X1", "X2", "X3"),
+  LeeBounds = TRUE,
+  aggBounds = TRUE
+)
+```
+
+## Output methods
+
+```{r eval = FALSE}
+print(out)
+summary(out)
+plot(out)
+```
+
+## Included data
+
+The package ships with three example datasets:
+
+- `simData`
+- `blattman_replic`
+- `santoro_replic`
+
+Please see the help pages for the function and datasets for details.

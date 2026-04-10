@@ -1,0 +1,137 @@
+* using log directory ‘/Users/yewang/Documents/GitHub/CTB/AI_powered/CTTB/CTTB.Rcheck’
+* using R version 4.4.2 (2024-10-31)
+* using platform: aarch64-apple-darwin20
+* R was compiled by
+    Apple clang version 14.0.0 (clang-1400.0.29.202)
+    GNU Fortran (GCC) 12.2.0
+* running under: macOS 26.3.1
+* using session charset: UTF-8
+* using option ‘--as-cran’
+* checking for file ‘CTTB/DESCRIPTION’ ... OK
+* checking extension type ... Package
+* this is package ‘CTTB’ version ‘0.1.0’
+* package encoding: UTF-8
+* checking CRAN incoming feasibility ... [3s/35s] NOTE
+Maintainer: ‘Ye Wang <yewang@unc.edu>’
+
+New submission
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking whether package ‘CTTB’ can be installed ... OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking for future file timestamps ... NOTE
+unable to verify current time
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking whether startup messages can be suppressed ... OK
+* checking use of S3 registration ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... NOTE
+LBounds_cont: no visible binding for global variable ‘seed’
+Undefined global functions or variables:
+  seed
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... NOTE
+Rd files without \description:
+  ‘plot.CTTB.Rd’ ‘print.CTTB.Rd’ ‘summary.CTTB.Rd’
+* checking for unstated dependencies in examples ... OK
+* checking contents of ‘data’ directory ... OK
+* checking data for non-ASCII characters ... OK
+* checking data for ASCII and uncompressed saves ... OK
+* checking examples ... OK
+* checking PDF version of manual ... OK
+* checking HTML version of manual ... NOTE
+Found the following HTML validation problems:
+CTTB-package.html:15:44 (CTTB-package.Rd:3): Error: <main> is not recognized!
+CTTB-package.html:15:44 (CTTB-package.Rd:3): Warning: discarding unexpected <main>
+CTTB-package.html:33:1 (CTTB-package.Rd:8): Warning: discarding unexpected </main>
+CTTB-package.html:4:1 (CTTB-package.Rd:3): Warning: <link> inserting "type" attribute
+CTTB-package.html:12:1 (CTTB-package.Rd:3): Warning: <script> proprietary attribute "onload"
+CTTB-package.html:12:1 (CTTB-package.Rd:3): Warning: <script> inserting "type" attribute
+CTTB-package.html:17:1 (CTTB-package.Rd:3): Warning: <table> lacks "summary" attribute
+CTTB.html:15:44 (CTTB.Rd:3): Error: <main> is not recognized!
+CTTB.html:15:44 (CTTB.Rd:3): Warning: discarding unexpected <main>
+CTTB.html:165:1 (CTTB.Rd:66): Warning: discarding unexpected </main>
+CTTB.html:4:1 (CTTB.Rd:3): Warning: <link> inserting "type" attribute
+CTTB.html:12:1 (CTTB.Rd:3): Warning: <script> proprietary attribute "onload"
+CTTB.html:12:1 (CTTB.Rd:3): Warning: <script> inserting "type" attribute
+CTTB.html:17:1 (CTTB.Rd:3): Warning: <table> lacks "summary" attribute
+CTTB.html:37:1 (CTTB.Rd:12): Warning: <table> lacks "summary" attribute
+blattman_replic.html:15:44 (blattman_replic.Rd:4): Error: <main> is not recognized!
+blattman_replic.html:15:44 (blattman_replic.Rd:4): Warning: discarding unexpected <main>
+blattman_replic.html:40:1 (blattman_replic.Rd:8): Warning: discarding unexpected </main>
+blattman_replic.html:4:1 (blattman_replic.Rd:4): Warning: <link> inserting "type" attribute
+blattman_replic.html:12:1 (blattman_replic.Rd:4): Warning: <script> proprietary attribute "onload"
+blattman_replic.html:12:1 (blattman_replic.Rd:4): Warning: <script> inserting "type" attribute
+blattman_replic.html:17:1 (blattman_replic.Rd:4): Warning: <table> lacks "summary" attribute
+plot.CTTB.html:15:44 (plot.CTTB.Rd:3): Error: <main> is not recognized!
+plot.CTTB.html:15:44 (plot.CTTB.Rd:3): Warning: discarding unexpected <main>
+plot.CTTB.html:71:1 (plot.CTTB.Rd:22): Warning: discarding unexpected </main>
+plot.CTTB.html:4:1 (plot.CTTB.Rd:3): Warning: <link> inserting "type" attribute
+plot.CTTB.html:12:1 (plot.CTTB.Rd:3): Warning: <script> proprietary attribute "onload"
+plot.CTTB.html:12:1 (plot.CTTB.Rd:3): Warning: <script> inserting "type" attribute
+plot.CTTB.html:17:1 (plot.CTTB.Rd:3): Warning: <table> lacks "summary" attribute
+plot.CTTB.html:30:1 (plot.CTTB.Rd:8): Warning: <table> lacks "summary" attribute
+plot.CTTB.html:47:14 (plot.CTTB.Rd:12): Warning: <code> attribute "id" has invalid value "..."
+print.CTTB.html:15:44 (print.CTTB.Rd:3): Error: <main> is not recognized!
+print.CTTB.html:15:44 (print.CTTB.Rd:3): Warning: discarding unexpected <main>
+print.CTTB.html:54:1 (print.CTTB.Rd:18): Warning: discarding unexpected </main>
+print.CTTB.html:4:1 (print.CTTB.Rd:3): Warning: <link> inserting "type" attribute
+print.CTTB.html:12:1 (print.CTTB.Rd:3): Warning: <script> proprietary attribute "onload"
+print.CTTB.html:12:1 (print.CTTB.Rd:3): Warning: <script> inserting "type" attribute
+print.CTTB.html:17:1 (print.CTTB.Rd:3): Warning: <table> lacks "summary" attribute
+print.CTTB.html:30:1 (print.CTTB.Rd:8): Warning: <table> lacks "summary" attribute
+print.CTTB.html:35:14 (print.CTTB.Rd:9): Warning: <code> attribute "id" has invalid value "..."
+santoro_replic.html:15:44 (santoro_replic.Rd:4): Error: <main> is not recognized!
+santoro_replic.html:15:44 (santoro_replic.Rd:4): Warning: discarding unexpected <main>
+santoro_replic.html:40:1 (santoro_replic.Rd:8): Warning: discarding unexpected </main>
+santoro_replic.html:4:1 (santoro_replic.Rd:4): Warning: <link> inserting "type" attribute
+santoro_replic.html:12:1 (santoro_replic.Rd:4): Warning: <script> proprietary attribute "onload"
+santoro_replic.html:12:1 (santoro_replic.Rd:4): Warning: <script> inserting "type" attribute
+santoro_replic.html:17:1 (santoro_replic.Rd:4): Warning: <table> lacks "summary" attribute
+simData.html:15:44 (simData.Rd:7): Error: <main> is not recognized!
+simData.html:15:44 (simData.Rd:7): Warning: discarding unexpected <main>
+simData.html:43:1 (simData.Rd:15): Warning: discarding unexpected </main>
+simData.html:4:1 (simData.Rd:7): Warning: <link> inserting "type" attribute
+simData.html:12:1 (simData.Rd:7): Warning: <script> proprietary attribute "onload"
+simData.html:12:1 (simData.Rd:7): Warning: <script> inserting "type" attribute
+simData.html:17:1 (simData.Rd:7): Warning: <table> lacks "summary" attribute
+summary.CTTB.html:15:44 (summary.CTTB.Rd:3): Error: <main> is not recognized!
+summary.CTTB.html:15:44 (summary.CTTB.Rd:3): Warning: discarding unexpected <main>
+summary.CTTB.html:54:1 (summary.CTTB.Rd:18): Warning: discarding unexpected </main>
+summary.CTTB.html:4:1 (summary.CTTB.Rd:3): Warning: <link> inserting "type" attribute
+summary.CTTB.html:12:1 (summary.CTTB.Rd:3): Warning: <script> proprietary attribute "onload"
+summary.CTTB.html:12:1 (summary.CTTB.Rd:3): Warning: <script> inserting "type" attribute
+summary.CTTB.html:17:1 (summary.CTTB.Rd:3): Warning: <table> lacks "summary" attribute
+summary.CTTB.html:30:1 (summary.CTTB.Rd:8): Warning: <table> lacks "summary" attribute
+summary.CTTB.html:35:14 (summary.CTTB.Rd:9): Warning: <code> attribute "id" has invalid value "..."
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+Status: 5 NOTEs

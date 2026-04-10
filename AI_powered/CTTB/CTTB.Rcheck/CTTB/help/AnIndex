@@ -1,0 +1,11 @@
+CTTB-package	CTTB-package
+blattman_replic	blattman_replic
+CTTB	CTTB
+dat	simData
+dat_full	simData
+plot.CTTB	plot.CTTB
+print.CTTB	print.CTTB
+santoro_replic	santoro_replic
+simData	simData
+summary.CTTB	summary.CTTB
+true_parameters	simData
